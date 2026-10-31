@@ -59,15 +59,17 @@ export function StationMarker({ access, size = MARKER_SIZE }: { access: StationA
 }
 
 
-// Zoomed in to street level, a station becomes a plain white capsule: a big, obvious tap target
-// that leaves status to the elevators drawn around it, so nothing at this zoom leans on color.
+// Zoomed in to street level, a station becomes a white capsule: a big, obvious tap target.
+// The border still carries isOut/isProblem status color, same as every other zoom, so the
+// complex layer never goes fully neutral — just quieter than the full colored marker.
 export const PILL_WIDTH = 46;
 export const PILL_HEIGHT = 26;
 
-export function StationPill() {
+export function StationPill({ access }: { access?: StationAccess } = {}) {
+  const stroke = access && access !== "none" ? TONES[access].fill : "#C4C1BB";
   return (
     <svg width={PILL_WIDTH} height={PILL_HEIGHT} viewBox={`0 0 ${PILL_WIDTH} ${PILL_HEIGHT}`} aria-hidden="true">
-      <rect x={3} y={3} width={PILL_WIDTH - 6} height={PILL_HEIGHT - 6} rx={(PILL_HEIGHT - 6) / 2} fill="#FFFFFF" stroke="#C4C1BB" strokeWidth={1.5} />
+      <rect x={3} y={3} width={PILL_WIDTH - 6} height={PILL_HEIGHT - 6} rx={(PILL_HEIGHT - 6) / 2} fill="#FFFFFF" stroke={stroke} strokeWidth={2} />
     </svg>
   );
 }

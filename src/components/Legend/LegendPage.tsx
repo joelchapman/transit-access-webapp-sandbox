@@ -1,12 +1,14 @@
 import React from "react";
 import { ElevatorMarker, ElevatorPlannedBadge } from "@/components/ElevatorMarker/ElevatorMarker";
 import { StationMarker } from "@/components/StationMarker/StationMarker";
+import { ElevatorInvertedIcon, Ramp } from "../icons";
 import {
   InServicePill,
   OutOfServicePill,
   AccessTipBadge,
   OutagePlannedBadge,
   MaintenanceBadge,
+  RedundantBadge,
 } from "@/components/StationPopup/StatusBadges";
 import { getADAPctByComplex } from "@/utils/dataUtils";
 import { longtermOutageThreshold } from "@/components/MtaMap/layers/UpcomingOutages/upcomingOutagesProps";
@@ -95,7 +97,7 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
           </div>
         </div>
         <p className="text-footnote tabular-nums text-muted-foreground">
-          {lastUpdated ? `Across ${totalElevators} elevators. Updated ${updatedAt}.` : "Loading live status…"}
+          {lastUpdated ? `Across ${totalElevators} elevators. Last updated: ${updatedAt}.` : "Loading live status…"}
         </p>
       </Section>
 
@@ -103,10 +105,10 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
         <Prose>Each accessible station shows how its elevators are doing right now.</Prose>
         <SymbolList
           items={[
-            { symbol: <StationMarker access="ok" size={28} />, text: "Every elevator is working." },
-            { symbol: <StationMarker access="partial" size={28} />, text: "At least one elevator is out of service." },
-            { symbol: <StationMarker access="out" size={28} />, text: "Every elevator is out, so there’s no step-free access right now." },
-            { symbol: <StationMarker access="none" size={28} />, text: "The station has no step-free access." },
+            { symbol: <StationMarker access="ok" size={28} />, text: "All elevators in service." },
+            { symbol: <StationMarker access="partial" size={28} />, text: "At least one elevator out of service." },
+            { symbol: <StationMarker access="out" size={28} />, text: "All elevators out of service." },
+            { symbol: <StationMarker access="none" size={28} />, text: "Station has no step-free access." },
           ]}
         />
         <Prose>Zoom in and each station becomes a white capsule, with its street elevators drawn where their entrances are.</Prose>
@@ -114,6 +116,8 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
           items={[
             { symbol: <ElevatorMarker state="ok" size={28} />, text: "A street elevator that’s working." },
             { symbol: <ElevatorMarker state="out" size={28} />, text: "A street elevator that’s out of service." },
+            { symbol: <ElevatorInvertedIcon size={28} />, text: "Platform elevator (not shown on map)." },
+            { symbol: <Ramp size={28} />, text: "Ramp." },
             {
               symbol: <ElevatorPlannedBadge size={18} />,
               text: `On an elevator’s corner: a long-term outage is coming up, more than ${longtermOutageThreshold} days.`,
@@ -146,6 +150,10 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
               badge: <MaintenanceBadge when="today" />,
               text: "Maintenance starts soon: today, tonight, overnight or tomorrow. Expect the elevator to be out for part of that time.",
             },
+            {
+              badge: <RedundantBadge />,
+              text: "If out of service, another path is possible.",
+            },
           ]}
         />
       </Section>
@@ -153,12 +161,12 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
       <Section title="Getting around">
         <Prose>
           {pctAccessible < 75 ? "Only " : ""}
-          <span className="font-semibold tabular-nums">{pctAccessible}%</span> of subway stations are ADA
-          accessible, so check that yours is in service before you go.
+          <span className="font-semibold tabular-nums">{pctAccessible}%</span> of stations in the MTA are
+          ADA accessible. Use Transit Access to check if your accessible station is in service.
         </Prose>
         <Prose>
-          The MTA takes elevators out for replacement for 8–12 months at a time. Upcoming outages show on
-          each station’s page.
+          The MTA is taking elevators out of service for replacement for 8–12 months at a time. Use Transit
+          Access to stay ready and up-to-date.
         </Prose>
         <Prose>
           Mobility devices board in the middle of the platform. Look for the conductor and the blue Boarding
@@ -178,11 +186,11 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
 
       <footer className="mx-4 mt-8 border-t border-border pt-4 text-footnote text-muted-foreground">
         <p className="max-w-[65ch] text-pretty">
-          Data comes from the MTA’s real-time feed and{" "}
+          App data is pulled from the MTA’s real-time feed and{" "}
           <a href="https://data.ny.gov" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
             Open Data NY
           </a>
-          , so it’s only as accurate as their reporting. Check{" "}
+          , so accuracy depends on what they report. If you suspect any inaccuracies, check{" "}
           <a href="https://mta.info" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
             mta.info
           </a>{" "}

@@ -69,7 +69,12 @@ export function attachStationMarkers(map: mapboxgl.Map) {
       add(markerImageId(access), image),
     );
   }
-  rasterize(<StationPill />, PILL_WIDTH, PILL_HEIGHT, ratio, true).then((image) => add("station-pill", image));
+  // Street-zoom capsule, border colored by status — only ok/partial/out pass this layer's ADA filter
+  for (const access of ["ok", "partial", "out"] as const) {
+    rasterize(<StationPill access={access} />, PILL_WIDTH, PILL_HEIGHT, ratio, true).then((image) =>
+      add(`station-pill-${access}`, image),
+    );
+  }
 
   const E = ELEVATOR_MARKER_SIZE;
   rasterize(<ElevatorMarker state="ok" />, E, E, ratio, true).then((image) => add("elevator-marker-ok", image));

@@ -19,9 +19,11 @@ interface LineBulletsProps {
   routes: string[];
   size?: keyof typeof SIZES;
   className?: string;
+  // Off for rows where the fan-out would be distracting (e.g. a compact out-of-service sublist)
+  animated?: boolean;
 }
 
-export function LineBullets({ routes, size = "md", className }: LineBulletsProps) {
+export function LineBullets({ routes, size = "md", className, animated = true }: LineBulletsProps) {
   return (
     <span
       className={cn("group/lines inline-flex shrink-0 items-center align-middle", className)}
@@ -34,7 +36,7 @@ export function LineBullets({ routes, size = "md", className }: LineBulletsProps
           className={cn(
             "relative grid shrink-0 place-items-center rounded-full bg-white ring-[1.5px] ring-white transition-transform duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none [&_svg]:size-full",
             SIZES[size],
-            FAN_OUT,
+            animated && FAN_OUT,
           )}
         >
           {MTA_SUBWAY_LINE_ICONS_SMALL[route] ?? (

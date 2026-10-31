@@ -115,7 +115,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
 
     if (totalElevators > 0) {
       srParts.push(
-        `${totalElevators} ${totalElevators > 1 ? "elevators" : "elevator"}`,
+        `${totalElevators} ${totalElevators > 1 ? "elevators" : "elevator"} at station`,
       );
 
       visualParts.push(
@@ -124,7 +124,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
           style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}
           aria-hidden="true"
         >
-          {totalElevators} {totalElevators > 1 ? "elevators" : "elevator"}
+          {totalElevators} {totalElevators > 1 ? "elevators" : "elevator"} at station
         </span>,
       );
     }

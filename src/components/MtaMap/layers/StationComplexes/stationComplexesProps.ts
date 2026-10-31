@@ -15,8 +15,14 @@ export const stationComplexProps = {
     "symbol-sort-key": 10,
     "symbol-z-order": "auto",
     "text-variable-anchor": ["bottom", "right", "top", "left"],
-    // Street-level zoom: a neutral white capsule as the tap target; the elevators around it carry status
-    "icon-image": "station-pill",
+    // Street-level zoom: a white capsule tap target, border colored the same as every other zoom
+    "icon-image": [
+      "case",
+      ["==", ["get", "isProblem"], false], "station-pill-ok",
+      ["==", ["get", "isOut"], true], "station-pill-out",
+      ["==", ["get", "isProblem"], true], "station-pill-partial",
+      "station-pill-ok",
+    ],
 "text-font": ["Montserrat Bold", "Arial Unicode MS Regular"],
         "icon-allow-overlap": ["step", ["zoom"], true, elevatorView-2, true],
         "icon-size": ["interpolate", ["linear"], ["zoom"], 15, 0.85, 17, 1.1],

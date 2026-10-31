@@ -1,5 +1,5 @@
 import React from "react";
-import { Wrench } from "lucide-react";
+import { Wrench, Star } from "lucide-react";
 import { AccessibleIconWhite } from "../icons";
 import { StatusIcon } from "@/components/StatusIcon/StatusIcon";
 import { cn } from "@/lib/utils";
@@ -59,31 +59,70 @@ export const InServicePill = ({ label = "In service" }: { label?: string }) => (
 
 export const OutOfServicePill = () => <StatusPill tone="out">Out of service</StatusPill>;
 
-// Extra information about an elevator: outlined, so it never competes with the status pill
-function Badge({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+// Same glyph as the pill's icon, standalone — for places that need the mark without the label
+export const OutOfServiceIcon = ({ className }: { className?: string }) => (
+  <StatusIcon glyph="alert" className={cn("text-status-out", className)} />
+);
+
+// Extra information about an elevator: outlined, so it never competes with the status pill.
+// Pass onClick to make it a real button (e.g. a badge that opens the card to reveal its note).
+function Badge({
+  icon,
+  children,
+  onClick,
+  "aria-label": ariaLabel,
+}: {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  onClick?: (e: React.MouseEvent) => void;
+  "aria-label"?: string;
+}) {
+  const className = cn(
+    // py-px + the 1px border matches a row pill's height
+    "inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-background py-px pl-1.5 pr-2 text-caption font-semibold text-foreground",
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} aria-label={ariaLabel} className={className}>
+        {icon}
+        {children}
+      </button>
+    );
+  }
+
   return (
-    <span
-      className={cn(
-        // py-px + the 1px border matches a row pill's height
-        "inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-background py-px pl-1.5 pr-2 text-caption font-semibold text-foreground",
-      )}
-    >
+    <span className={className}>
       {icon}
       {children}
     </span>
   );
 }
 
-export const AccessTipBadge = () => (
-  <Badge icon={<AccessibleIconWhite size={12} fill="#6b2177" />}>Access tip</Badge>
+export const AccessTipBadge = ({ onClick, "aria-label": ariaLabel }: { onClick?: (e: React.MouseEvent) => void; "aria-label"?: string }) => (
+  <Badge icon={<AccessibleIconWhite size={12} fill="#6b2177" />} onClick={onClick} aria-label={ariaLabel}>
+    Access tip
+  </Badge>
 );
 
-export const OutagePlannedBadge = () => (
-  <Badge icon={<Wrench className="size-3 text-status-out" strokeWidth={2.5} aria-hidden="true" />}>Outage planned</Badge>
+export const OutagePlannedBadge = ({ onClick, "aria-label": ariaLabel }: { onClick?: (e: React.MouseEvent) => void; "aria-label"?: string }) => (
+  <Badge
+    icon={<Wrench className="size-3 text-status-out" strokeWidth={2.5} aria-hidden="true" />}
+    onClick={onClick}
+    aria-label={ariaLabel}
+  >
+    Outage planned
+  </Badge>
 );
 
 export const MaintenanceBadge = ({ when }: { when: string }) => (
   <Badge icon={<Wrench className="size-3 text-status-partial" strokeWidth={2.5} aria-hidden="true" />}>
     Maintenance {when}
+  </Badge>
+);
+
+export const RedundantBadge = () => (
+  <Badge icon={<Star className="size-3 text-status-ok" strokeWidth={2.5} aria-hidden="true" />}>
+    Redundant elevator
   </Badge>
 );

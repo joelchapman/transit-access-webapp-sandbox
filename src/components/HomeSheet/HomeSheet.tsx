@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 import { Command as CommandPrimitive } from "cmdk";
 import { matchSorter } from "match-sorter";
-import { Info, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { StatusPill, StatusTone, MaintenanceBadge } from "@/components/StationPopup/StatusBadges";
+import { Info, Search, X, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { StatusPill, StatusTone, OutOfServiceIcon, MaintenanceBadge } from "@/components/StationPopup/StatusBadges";
 import { ROW_PRESS, BUTTON_PRESS } from "@/lib/interaction";
 import { Drawer, DrawerPortal, DrawerTitle } from "@/components/ui/drawer";
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
@@ -11,9 +11,10 @@ import { Button } from "@/components/ui/button";
 import { LineBullets } from "@/components/LineBullets/LineBullets";
 import { StatusIcon } from "@/components/StatusIcon/StatusIcon";
 import LegendPage from "@/components/Legend/LegendPage";
-import { LocationPin, AccessibleIconWhite } from "@/components/icons";
+import { LocationPin, AccessibleIconWhite, ElevatorIcon, ElevatorInvertedIcon, Ramp } from "@/components/icons";
 import { useNearbyStations, WALKING_RADII, formatWalkingDistance } from "./useNearbyStations";
 import { getComplexesDataset } from "@/lib/dataStore";
+import { getElevatorsByComplexId } from "@/utils/dataUtils";
 import { MtaStationData, MtaStationFeature } from "@/utils/types";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,24 @@ const SNAP_PEEK = "136px";
 const SNAP_HALF = 0.55;
 const SNAP_FULL = 0.94;
 const MAX_RESULTS = 40;
+// Matches the breakpoint MtaMap.tsx already uses for desktop-only map behavior
+const DESKTOP_QUERY = "(min-width: 768px)";
+
+// Bottom sheet on mobile, left side panel on desktop — this component stays mounted
+// across a resize, so it needs to react live rather than check window.innerWidth once.
+// Starts false (matching the server, which has no window) and corrects itself right
+// after mount; reading matchMedia in the initial state would mismatch server vs. client.
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia(DESKTOP_QUERY);
+    setIsDesktop(mql.matches);
+    const onChange = () => setIsDesktop(mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+  return isDesktop;
+}
 
 type LngLat = [number, number];
 type StationOutage = { stationID: string; isOut: boolean };
@@ -34,6 +53,7 @@ interface ComplexRow {
   coords: LngLat;
   isAccessible: boolean;
   status: ComplexStatus;
+  outElevators: any[];
 }
 
 interface HomeSheetProps {
@@ -74,6 +94,94 @@ function StationLabel({ name, routes }: { name: string; routes: string[] }) {
   );
 }
 
+const toBool = (v: unknown) => v === true || v === "true" || v === "1";
+
+// A status icon that reveals its label on hover (desktop) or tap (touch) — a stateful tap toggle
+// layered under the same hover-only CSS language LineBullets uses for its fan-out.
+// tone="out" makes the revealed label match OutOfServicePill's look (solid red, white text).
+function IconWithLabel({ icon, label, tone = "neutral" }: { icon: React.ReactNode; label: string; tone?: "out" | "neutral" }) {
+  const [open, setOpen] = useState(false);
+  const pill = tone === "out";
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        setOpen((o) => !o);
+      }}
+      onBlur={() => setOpen(false)}
+      className="group/hint inline-flex shrink-0 items-center"
+    >
+      <span className="shrink-0">{icon}</span>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "overflow-hidden whitespace-nowrap text-caption font-semibold transition-[max-width,margin,padding,background-color,color,opacity] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+          pill && "rounded-full",
+          open
+            ? cn("ml-1 max-w-[120px] opacity-100", pill && "bg-status-out px-2 py-0.5 text-white")
+            : cn(
+                "max-w-0 opacity-0",
+                "[@media(hover:hover)]:group-hover/hint:ml-1 [@media(hover:hover)]:group-hover/hint:max-w-[120px] [@media(hover:hover)]:group-hover/hint:opacity-100",
+                pill &&
+                  "[@media(hover:hover)]:group-hover/hint:bg-status-out [@media(hover:hover)]:group-hover/hint:px-2 [@media(hover:hover)]:group-hover/hint:py-0.5 [@media(hover:hover)]:group-hover/hint:text-white",
+              ),
+        )}
+      >
+        {label}
+      </span>
+      <span className="sr-only">{label}</span>
+    </button>
+  );
+}
+
+// One out-of-service elevator, indented below its station — same info the old
+// NearbyStationsPopup showed per elevator, ported to the new row style.
+function OutElevatorRow({ el }: { el: any }) {
+  const isRamp = el.properties.elevatorno?.toLowerCase().includes("ra");
+  const isStreet = toBool(el.properties.isStreet);
+  const lines = (el.properties.linesServed || "").replace(/-/g, "").replaceAll("/", " ");
+  const direction = el.properties.directionLabel || "";
+  const title = isRamp
+    ? "Ramp"
+    : isStreet
+      ? "Street elevator"
+      : `Elevator${el.properties.isBridge ? " to overpass" : ""}${el.properties.isMezzTransferOnly ? " to lower mezzanine" : ""}`;
+
+  return (
+    <div className="flex items-start gap-2 py-1.5 pl-8 pr-4 text-footnote text-muted-foreground">
+      <span className="mt-0.5 flex shrink-0 items-center gap-1.5">
+        <IconWithLabel icon={<OutOfServiceIcon className="size-4" />} label="Out of service" tone="out" />
+        {el.properties.isRedundant === "1" && (
+          <IconWithLabel
+            icon={<Star className="size-4 text-status-ok" strokeWidth={2.5} aria-hidden="true" />}
+            label="Redundant elevator"
+          />
+        )}
+        <span aria-hidden="true">
+          {isRamp ? <Ramp size={16} /> : isStreet ? <ElevatorIcon size={16} /> : <ElevatorInvertedIcon size={16} />}
+        </span>
+      </span>
+      <span className="min-w-0 flex-1 truncate">
+        {title}
+        {!isRamp && lines && <> <LineBullets routes={lines.split(" ").filter(Boolean)} size="sm" animated={false} /></>}
+        {direction && ` (${direction})`}
+      </span>
+    </div>
+  );
+}
+
+function OutElevatorList({ elevators }: { elevators: any[] }) {
+  if (elevators.length === 0) return null;
+  return (
+    <div className="flex flex-col pb-1.5">
+      {elevators.map((el, i) => (
+        <OutElevatorRow key={el.properties.elevatorno ?? i} el={el} />
+      ))}
+    </div>
+  );
+}
+
 const STATUS_CHIPS: Record<ComplexStatus, { tone: StatusTone; label: string }> = {
   ok: { tone: "ok", label: "Working" },
   partial: { tone: "partial", label: "Some out" },
@@ -110,24 +218,28 @@ function Group({
   );
 }
 
-// A page pushed on top of the station list, with a back button to return to it
+// A page pushed on top of the station list, with a back button to return to it.
+// isDesktop skips vaul's DrawerTitle (it needs a <Drawer> context that the desktop
+// panel, rendered outside one, doesn't have) in favor of a plain heading.
 function SubPage({
   label,
   onBack,
   scrollable,
   endPadding,
+  isDesktop,
   children,
 }: {
   label: string;
   onBack: () => void;
   scrollable: boolean;
   endPadding: React.CSSProperties;
+  isDesktop: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <DrawerTitle className="sr-only">{label}</DrawerTitle>
-      <div className="px-2 pb-1">
+      {isDesktop ? <h2 className="sr-only">{label}</h2> : <DrawerTitle className="sr-only">{label}</DrawerTitle>}
+      <div className="flex items-center justify-between px-2 pb-1">
         <Button
           variant="ghost"
           onClick={onBack}
@@ -135,6 +247,15 @@ function SubPage({
         >
           <ChevronLeft className="size-6" />
           Stations
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onBack}
+          aria-label="Close"
+          className={cn("-mr-1 size-11 shrink-0 rounded-full text-muted-foreground hover:bg-transparent hover:text-foreground", BUTTON_PRESS)}
+        >
+          <X className="size-5" />
         </Button>
       </div>
       <div
@@ -166,6 +287,14 @@ function AdoptedNode({ node }: { node: HTMLElement }) {
 const itemClass =
   "group/row flex min-h-14 cursor-pointer items-center gap-3 rounded-none px-4 py-3 text-body transition-colors duration-150 data-[selected=true]:bg-transparent hover:!bg-foreground/[0.04] active:!bg-foreground/[0.08] group-focus-within:data-[selected=true]:bg-foreground/[0.04]";
 
+// Same row, but stacked vertically so an out-of-service elevator sublist can live inside the
+// same clickable item as the station summary — the whole block, elevators included, is one button.
+// cmdk's own CommandItem wrapper bakes in `items-center px-2 py-1.5`; both are overridden here
+// (items-stretch, px-0 py-0) so the two children below take the item's full width instead of
+// shrinking to their content and centering — which is what let long rows overflow sideways.
+const itemWithSublistClass =
+  "group/row flex flex-col items-stretch gap-0 cursor-pointer rounded-none px-0 py-0 text-body transition-colors duration-150 data-[selected=true]:bg-transparent hover:!bg-foreground/[0.04] active:!bg-foreground/[0.08] group-focus-within:data-[selected=true]:bg-foreground/[0.04]";
+
 const HomeSheet: React.FC<HomeSheetProps> = ({
   open,
   numOutElevators,
@@ -182,6 +311,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
   onBack,
   onSelectStation,
 }) => {
+  const isDesktop = useIsDesktop();
   const [snap, setSnap] = useState<number | string | null>(SNAP_PEEK);
   const [query, setQuery] = useState("");
   const [isLegendOpen, setIsLegendOpen] = useState(false);
@@ -260,6 +390,11 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
           coords: (complex?.geometry.coordinates ?? feature.geometry.coordinates) as LngLat,
           isAccessible: false,
           status: "ok",
+          outElevators: getElevatorsByComplexId(complex_id).filter((el: any) =>
+            elevatorData?.some(
+              (out) => out.elevatorNo?.toLowerCase() === el.properties.elevatorno?.toLowerCase(),
+            ),
+          ),
           affected: [],
         };
         rows.set(complex_id, row);
@@ -273,7 +408,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
       ...row,
       status: (affected.length === 0 ? "ok" : affected.every(Boolean) ? "out" : "partial") as ComplexStatus,
     }));
-  }, [stationData, stationOutages]);
+  }, [stationData, stationOutages, elevatorData]);
 
   const outageRows = useMemo(
     () =>
@@ -292,50 +427,44 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
   };
 
   const isSearching = query.trim().length > 0;
-  const isScrollable = snap !== SNAP_PEEK;
+  // Desktop is a static left panel (no drag/snap), so it's always fully scrollable with
+  // ordinary bottom padding. Mobile keeps the snap-point peek/half/full behavior.
+  const isScrollable = isDesktop || snap !== SNAP_PEEK;
   // The sheet is always full height and slides down to each snap point, so the part below the
   // screen edge is (1 - snap) of the viewport. Pad by that plus 32px so the last row can always
   // scroll clear of the edge, with visible empty space to show it's the end.
-  const hiddenDvh = typeof snap === "number" ? (1 - snap) * 100 : 0;
-  const endPadding = {
-    paddingBottom: `calc(${hiddenDvh.toFixed(1)}dvh + 32px + env(safe-area-inset-bottom))`,
-  };
+  const hiddenDvh = !isDesktop && typeof snap === "number" ? (1 - snap) * 100 : 0;
+  const endPadding = isDesktop
+    ? { paddingBottom: "16px" }
+    : { paddingBottom: `calc(${hiddenDvh.toFixed(1)}dvh + 32px + env(safe-area-inset-bottom))` };
 
-  return (
-    <Drawer
-      open={open}
-      modal={false}
-      dismissible={false}
-      shouldScaleBackground={false}
-      snapPoints={[SNAP_PEEK, SNAP_HALF, SNAP_FULL]}
-      activeSnapPoint={snap}
-      setActiveSnapPoint={setSnap}
-    >
-      <DrawerPortal>
-        <DrawerPrimitive.Content
-          aria-describedby={undefined}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          className="fixed inset-x-0 bottom-0 z-[998] mx-auto flex h-dvh max-w-lg flex-col rounded-t-sheet bg-background shadow-[0_-1px_0_oklch(0_0_0/0.04),0_-8px_24px_oklch(0_0_0/0.12)] outline-none"
-        >
-          <div className="mx-auto mt-2 h-[5px] w-9 shrink-0 rounded-full bg-foreground/20" aria-hidden="true" />
+  const content = (
+    <>
+      {!isDesktop && (
+        <div className="mx-auto mt-2 h-[5px] w-9 shrink-0 rounded-full bg-foreground/20" aria-hidden="true" />
+      )}
 
-          {page ? (
-            <SubPage label="Station details" onBack={onBack} scrollable={isScrollable} endPadding={endPadding}>
-              <AdoptedNode node={page} />
-            </SubPage>
-          ) : isLegendOpen ? (
-            <SubPage label="Legend" onBack={closeLegend} scrollable={isScrollable} endPadding={endPadding}>
-              <LegendPage
-                numOutElevators={numOutElevators}
-                totalElevators={totalElevators}
-                lastUpdated={lastUpdated}
-              />
-            </SubPage>
-          ) : (
-            <Command shouldFilter={false} className="group min-h-0 flex-1 rounded-none bg-transparent">
-              <header className="flex items-center justify-between gap-3 px-4 pb-3 pt-1">
-                <DrawerTitle className="text-title">Stations</DrawerTitle>
-                <Button
+      {page ? (
+        <SubPage label="Station details" onBack={onBack} scrollable={isScrollable} endPadding={endPadding} isDesktop={isDesktop}>
+          <AdoptedNode node={page} />
+        </SubPage>
+      ) : isLegendOpen ? (
+        <SubPage label="Legend" onBack={closeLegend} scrollable={isScrollable} endPadding={endPadding} isDesktop={isDesktop}>
+          <LegendPage
+            numOutElevators={numOutElevators}
+            totalElevators={totalElevators}
+            lastUpdated={lastUpdated}
+          />
+        </SubPage>
+      ) : (
+        <Command shouldFilter={false} className="group min-h-0 flex-1 rounded-none bg-transparent">
+          <header className="flex items-center justify-between gap-3 px-4 pb-3 pt-1">
+            {isDesktop ? (
+              <h2 className="text-title">Stations</h2>
+            ) : (
+              <DrawerTitle className="text-title">Stations</DrawerTitle>
+            )}
+            <Button
                   variant="ghost"
                   size="icon"
                   className={cn("-mr-2 size-11 shrink-0 rounded-full text-muted-foreground hover:bg-transparent hover:text-foreground", BUTTON_PRESS)}
@@ -401,7 +530,14 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                             className={itemClass}
                           >
                             <StationLabel name={option.name} routes={option.routes} />
-                            {!option.isAccessible && (
+                            {option.isAccessible ? (
+                              <span className="shrink-0 text-muted-foreground">
+                                <span aria-hidden="true">
+                                  <AccessibleIconWhite size={14} fill="currentColor" />
+                                </span>
+                                <span className="sr-only">Accessible station</span>
+                              </span>
+                            ) : (
                               <span className="shrink-0 text-footnote text-muted-foreground">Not accessible</span>
                             )}
                           </CommandItem>
@@ -469,33 +605,36 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                                 key={station.complexId}
                                 value={`nearby-${station.complexId}`}
                                 onSelect={() => select(station.feature, nearby.radius)}
-                                className={cn(itemClass, "items-start")}
+                                className={itemWithSublistClass}
                               >
-                                <span className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
-                                  <span className="max-w-full truncate text-headline font-semibold">{station.name}</span>
-                                  <LineBullets routes={station.routes} size="sm" />
-                                  {station.maintenanceLabel && <MaintenanceBadge when={station.maintenanceLabel} />}
-                                  {station.adaNotes && (
-                                    <span className="flex items-start gap-1 text-caption text-muted-foreground">
-                                      <span className="mt-px shrink-0" aria-hidden="true">
-                                        <AccessibleIconWhite size={11} fill="currentColor" />
+                                <span className="flex min-h-14 w-full items-start gap-3 px-4 py-3">
+                                  <span className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
+                                    <span className="max-w-full truncate text-headline font-semibold">{station.name}</span>
+                                    <LineBullets routes={station.routes} size="sm" />
+                                    {station.maintenanceLabel && <MaintenanceBadge when={station.maintenanceLabel} />}
+                                    {station.adaNotes && (
+                                      <span className="flex items-start gap-1 text-caption text-muted-foreground">
+                                        <span className="mt-px shrink-0" aria-hidden="true">
+                                          <AccessibleIconWhite size={11} fill="currentColor" />
+                                        </span>
+                                        {station.adaNotes}
                                       </span>
-                                      {station.adaNotes}
-                                    </span>
-                                  )}
+                                    )}
+                                  </span>
+                                  <span className="flex shrink-0 flex-col items-end gap-1.5">
+                                    <StatusChip
+                                      status={station.status}
+                                      label={station.status === "partial" && station.outCount > 0 ? `${station.outCount} out` : undefined}
+                                    />
+                                    {nearby.showDistances && (
+                                      <span className="pr-1 text-footnote tabular-nums text-muted-foreground">
+                                        {formatWalkingDistance(station.walkingMiles)}
+                                        {station.walkMinutes !== null && ` · ${station.walkMinutes} min`}
+                                      </span>
+                                    )}
+                                  </span>
                                 </span>
-                                <span className="flex shrink-0 flex-col items-end gap-1.5">
-                                  <StatusChip
-                                    status={station.status}
-                                    label={station.status === "partial" && station.outCount > 0 ? `${station.outCount} out` : undefined}
-                                  />
-                                  {nearby.showDistances && (
-                                    <span className="pr-1 text-footnote tabular-nums text-muted-foreground">
-                                      {formatWalkingDistance(station.walkingMiles)}
-                                      {station.walkMinutes !== null && ` · ${station.walkMinutes} min`}
-                                    </span>
-                                  )}
-                                </span>
+                                <OutElevatorList elevators={station.outElevators} />
                               </CommandItem>
                             ))}
                           </div>
@@ -518,10 +657,13 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                               key={row.key}
                               value={`outage-${row.key}`}
                               onSelect={() => select(row.feature)}
-                              className={itemClass}
+                              className={itemWithSublistClass}
                             >
-                              <StationLabel name={row.name} routes={Array.from(row.routes)} />
-                              <StatusChip status={row.status} />
+                              <span className="flex min-h-14 w-full items-center gap-3 px-4 py-3">
+                                <StationLabel name={row.name} routes={Array.from(row.routes)} />
+                                <StatusChip status={row.status} />
+                              </span>
+                              <OutElevatorList elevators={row.outElevators} />
                             </CommandItem>
                           ))}
                         </Group>
@@ -547,6 +689,39 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
               </CommandList>
             </Command>
           )}
+    </>
+  );
+
+  if (isDesktop) {
+    if (!open) return null;
+    return (
+      <div
+        role="dialog"
+        aria-label="Stations"
+        className="fixed left-4 top-[88px] z-[998] flex max-h-[calc(100dvh-104px)] w-[380px] flex-col overflow-hidden rounded-sheet bg-background shadow-[0_1px_2px_oklch(0_0_0/0.08),0_8px_24px_oklch(0_0_0/0.16)] outline-none"
+      >
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Drawer
+      open={open}
+      modal={false}
+      dismissible={false}
+      shouldScaleBackground={false}
+      snapPoints={[SNAP_PEEK, SNAP_HALF, SNAP_FULL]}
+      activeSnapPoint={snap}
+      setActiveSnapPoint={setSnap}
+    >
+      <DrawerPortal>
+        <DrawerPrimitive.Content
+          aria-describedby={undefined}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          className="fixed inset-x-0 bottom-0 z-[998] mx-auto flex h-dvh max-w-lg flex-col rounded-t-sheet bg-background shadow-[0_-1px_0_oklch(0_0_0/0.04),0_-8px_24px_oklch(0_0_0/0.12)] outline-none"
+        >
+          {content}
         </DrawerPrimitive.Content>
       </DrawerPortal>
     </Drawer>

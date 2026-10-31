@@ -15,7 +15,7 @@ export function AccessTipNote({ note }: { note: string }) {
         <AccessibleIconWhite size={16} fill="#6b2177" />
       </span>
       <p>
-        <span className="font-semibold">Access tip. </span>
+        <span className="font-semibold">Access tip </span>
         {note}
       </p>
     </div>
@@ -30,7 +30,7 @@ export function PlannedOutageNotes({ outages }: { outages: UpcomingOutage[] }) {
           <Wrench className="mt-0.5 size-4 shrink-0 text-status-out" strokeWidth={2.25} aria-hidden="true" />
           <p>
             <span className="font-semibold">
-              {o.outageDurationDays > longtermOutageThreshold ? "Long-term" : "Short-term"} outage planned.{" "}
+              {o.outageDurationDays > longtermOutageThreshold ? "Long-term" : "Short-term"} outage planned{" "}
             </span>
             {o.outageDuration} ({o.reason})
           </p>

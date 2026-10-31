@@ -59,6 +59,7 @@ export interface NearbyStation {
   adaNotes: string | null;
   status: "ok" | "partial" | "out";
   outCount: number;
+  outElevators: any[];
   walkingMiles: number;
   walkMinutes: number | null;
   maintenanceLabel: string | null;
@@ -121,11 +122,11 @@ export function useNearbyStations({
       complexes.map((complex: any) => {
         const complexId = complex.properties.complex_id;
         const outage = outageByComplex.get(complexId);
-        const outCount = getElevatorsByComplexId(complexId).filter((el: any) =>
+        const outElevators = getElevatorsByComplexId(complexId).filter((el: any) =>
           elevatorData?.some(
             (out) => out.elevatorNo?.toLowerCase() === el.properties.elevatorno?.toLowerCase(),
           ),
-        ).length;
+        );
         // Distances shown are always from the real GPS fix, even when the list follows the map pin
         const miles = userLocation ? distanceToEntrance(complex, userLocation) : complex.distance;
         const walkingMiles = miles * WALKING_DISTANCE_FACTOR;
@@ -137,7 +138,8 @@ export function useNearbyStations({
           routes: (complex.properties.route || "").split(" ").filter(Boolean),
           adaNotes: complex.properties.ada_notes || null,
           status: outage?.isOut ? "out" : outage?.isProblem ? "partial" : "ok",
-          outCount,
+          outCount: outElevators.length,
+          outElevators,
           walkingMiles,
           walkMinutes: userInBounds && !isUsingPin && withinRadius ? Math.max(1, Math.round(walkingMiles * 20)) : null,
           maintenanceLabel: getComplexMaintenanceToday(complexId, upcomingElevatorData),
