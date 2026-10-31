@@ -1,8 +1,12 @@
-import mapStyle from "@/styles/mapbox-style.json"; 
+import mapStyle from "@/styles/mapbox-style.json";
+import { applyMapTheme } from "@/styles/mapTheme";
 import { LngLatBounds, StyleSpecification } from "mapbox-gl";
 
 import boroughData from "@/resources/nyc_boroughs.json";
 import type { BoroughCollection } from "@/utils/types";
+
+// Built once: the Studio export with the app's map theme applied
+const themedStyle = applyMapTheme(mapStyle) as unknown as StyleSpecification;
 
 export const DEFAULT_ZOOM = 13;
 export const DEFAULT_CENTER: [number, number] = [-73.98465318925187, 40.7564263693059];
@@ -103,7 +107,7 @@ export const getMtaMapOptions = (container, pitch) => {
 
   return {
     container,
-    style: mapStyle as unknown as StyleSpecification,
+    style: themedStyle,
     center: DEFAULT_CENTER,
     zoom: DEFAULT_ZOOM,
     bearing,

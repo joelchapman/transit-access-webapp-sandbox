@@ -8,6 +8,7 @@ import {
   DEFAULT_ZOOM,
 } from "./mtaMapOptions";
 import React from "react";
+import { attachTrackBullets } from "./trackBullets";
 import { createRoot, type Root } from "react-dom/client";
 
 // DATASETS
@@ -95,6 +96,7 @@ export const initializeMtaMap = (
   const mtaMapOptions = getMtaMapOptions(mapContainer.current, mapRefPitch);
 
   mapRef.current = new mapboxgl.Map(mtaMapOptions);
+  attachTrackBullets(mapRef.current);
 
   const zoomControl = new mapboxgl.NavigationControl({
     visualizePitch: true,
