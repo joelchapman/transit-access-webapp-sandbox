@@ -9,6 +9,7 @@ import {
 } from "./mtaMapOptions";
 import React from "react";
 import { attachTrackBullets } from "./trackBullets";
+import { attachStationMarkers } from "./stationMarkerImages";
 import { createRoot, type Root } from "react-dom/client";
 
 // DATASETS
@@ -97,6 +98,7 @@ export const initializeMtaMap = (
 
   mapRef.current = new mapboxgl.Map(mtaMapOptions);
   attachTrackBullets(mapRef.current);
+  attachStationMarkers(mapRef.current);
 
   const zoomControl = new mapboxgl.NavigationControl({
     visualizePitch: true,

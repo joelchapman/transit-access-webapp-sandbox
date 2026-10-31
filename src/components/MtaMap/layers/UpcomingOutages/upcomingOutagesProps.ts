@@ -1,8 +1,7 @@
 // naming convention: file is plural, export is singular.
 // import runs into ts type problems when they're the same (unconfirmed but suspected)
 
-import { dotView, elevatorView } from "../CurrentOutages/currentOutagesProps";
-const offsetDistance = -23;
+import { elevatorView } from "../CurrentOutages/currentOutagesProps";
 export const longtermOutageThreshold = 7;
 
 export const upcomingOutageProps = {
@@ -11,24 +10,18 @@ export const upcomingOutageProps = {
   filter: [">", ["get", "outageDurationDays"], longtermOutageThreshold], // long-term only
   type: "symbol", // Using symbol type for icon display
   layout: {
-    "icon-image": [
-      "case",
-      [">", ["get", "outageDurationDays"], longtermOutageThreshold], // long-term
-      "wrench-filled",
-      "",
-    ],
-
-    "icon-size": ["interpolate", ["linear"], ["zoom"], elevatorView-2, 0.6, elevatorView-1, 0.8, elevatorView+1, 0],
+    // A wrench badge on the bottom-right corner of the elevator's marker (see ElevatorPlannedBadge),
+    // shown with the markers so the planned outage sits on the elevator it belongs to
+    "icon-image": "elevator-badge-planned",
+    "icon-size": ["step", ["zoom"], 0, elevatorView - 1, 0.95],
     "icon-anchor": "center",
-    "icon-offset": [offsetDistance, 0],
+    "icon-offset": [11, 11],
     "icon-allow-overlap": true,
-    "icon-padding": 0,
+    "icon-ignore-placement": true,
     "symbol-z-order": "source",
     "symbol-sort-key": 9,
   },
   paint: {
-    "icon-opacity": ["step", ["zoom"], 0, dotView, 1, elevatorView-1, 0],
-
+    "icon-opacity": ["step", ["zoom"], 0, elevatorView - 1, 1],
   },
-  
 };

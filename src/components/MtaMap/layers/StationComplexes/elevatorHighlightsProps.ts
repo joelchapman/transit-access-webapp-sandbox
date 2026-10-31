@@ -22,15 +22,11 @@ export const elevatorHighlightProps = (elevatorId: string | number) => ({
   "source": "composite",
   "source-layer": "nyc_transit_elevators",
   "filter": ["==", ["get", "elevatorno"], elevatorId] as any,
+  // A ring around the selected elevator's marker (see ElevatorSelectionRing), keeping the marker visible
   "layout" : {
-    "icon-image": "Elevator-pink",
-    "icon-size": 1.2,
-    "icon-overlap": true
+    "icon-image": "elevator-marker-selected",
+    "icon-size": 0.95,
+    "icon-allow-overlap": true,
+    "icon-ignore-placement": true,
   },
-  "paint": {
-            "icon-halo-color": "white",
-            "icon-halo-width": 10,
-            "icon-halo-blur": 1,
-            "icon-opacity": 0.8,
-        }
 });

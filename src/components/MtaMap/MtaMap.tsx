@@ -495,10 +495,8 @@ const MtaMap = () => {
         "mta-subway-complexes-accessible2",
         "transit-elevators",
       );
-      mapRef.current.moveLayer(
-        "upcoming-outages",
-        "mta-subway-stations-accessible",
-      );
+      // The planned-outage wrench is a badge on the elevator marker, so it draws on top of it
+      mapRef.current.moveLayer("upcoming-outages");
 
       // Draw a translucent complex boundary
       mapRef.current.addSource(

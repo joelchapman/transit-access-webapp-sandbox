@@ -1,6 +1,6 @@
 import React from "react";
-import { Wrench } from "lucide-react";
-import { LiftGood, WarnIcon, LiftBad, ElevatorIcon, RedX } from "../icons";
+import { ElevatorMarker, ElevatorPlannedBadge } from "@/components/ElevatorMarker/ElevatorMarker";
+import { StationMarker } from "@/components/StationMarker/StationMarker";
 import {
   InServicePill,
   OutOfServicePill,
@@ -34,13 +34,13 @@ function Prose({ children }: { children: React.ReactNode }) {
   return <p className="max-w-[65ch] text-body leading-relaxed text-pretty">{children}</p>;
 }
 
-// A symbol beside its meaning, in a fixed 24px column so the text lines up down the list
+// A symbol beside its meaning, in a fixed 28px column so the text lines up down the list
 function SymbolList({ items }: { items: { symbol: React.ReactNode; text: React.ReactNode }[] }) {
   return (
     <dl className="flex flex-col gap-3">
       {items.map(({ symbol, text }, i) => (
         <div key={i} className="flex items-start gap-3">
-          <dt className="grid size-6 shrink-0 place-items-center" aria-hidden="true">
+          <dt className="grid size-7 shrink-0 place-items-center" aria-hidden="true">
             {symbol}
           </dt>
           <dd className="pt-0.5 text-subhead text-pretty">{text}</dd>
@@ -100,26 +100,23 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
       </Section>
 
       <Section title="Reading the map">
-        <Prose>Each station shows how its elevators are doing right now.</Prose>
+        <Prose>Each accessible station shows how its elevators are doing right now.</Prose>
         <SymbolList
           items={[
-            { symbol: <LiftGood size={24} />, text: "Every elevator is working." },
-            { symbol: <WarnIcon size={20} />, text: "At least one elevator is out of service." },
-            { symbol: <LiftBad size={24} />, text: "Every elevator is out of service." },
-            { symbol: <RedX size={24} />, text: "The station isn’t ADA accessible." },
+            { symbol: <StationMarker access="ok" size={28} />, text: "Every elevator is working." },
+            { symbol: <StationMarker access="partial" size={28} />, text: "At least one elevator is out of service." },
+            { symbol: <StationMarker access="out" size={28} />, text: "Every elevator is out, so there’s no step-free access right now." },
+            { symbol: <StationMarker access="none" size={28} />, text: "The station has no step-free access." },
           ]}
         />
-        <Prose>Zoom in and the map adds more detail.</Prose>
+        <Prose>Zoom in and each station becomes a white capsule, with its street elevators drawn where their entrances are.</Prose>
         <SymbolList
           items={[
-            { symbol: <ElevatorIcon size={24} />, text: "A street elevator, drawn where its entrance is." },
+            { symbol: <ElevatorMarker state="ok" size={28} />, text: "A street elevator that’s working." },
+            { symbol: <ElevatorMarker state="out" size={28} />, text: "A street elevator that’s out of service." },
             {
-              symbol: (
-                <span className="grid size-6 place-items-center rounded-full bg-status-out text-white">
-                  <Wrench className="size-3.5" strokeWidth={2.5} aria-hidden="true" />
-                </span>
-              ),
-              text: `A long-term outage is coming up, more than ${longtermOutageThreshold} days.`,
+              symbol: <ElevatorPlannedBadge size={18} />,
+              text: `On an elevator’s corner: a long-term outage is coming up, more than ${longtermOutageThreshold} days.`,
             },
           ]}
         />

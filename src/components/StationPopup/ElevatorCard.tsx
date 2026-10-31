@@ -133,34 +133,40 @@ const ElevatorCard: React.FC<{
           aria-expanded={isOpen}
           aria-controls={detailsId}
           className={cn(
-            "flex w-full min-w-0 items-start py-3 pl-4 text-left",
+            "flex w-full min-w-0 items-stretch py-3 pl-4 text-left",
             ROW_PRESS,
             // Room for the thumbnail while it's showing; snaps (not animated) so text reflows once
-            elevator.imageURL && !isOpen ? "min-h-[84px] pr-[124px]" : "pr-4",
+            elevator.imageURL && !isOpen ? "min-h-[104px] pr-[116px]" : "pr-4",
           )}
         >
-          <span className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-headline font-semibold text-pretty">{titleText}</span>
-            {caveat && <span className="text-footnote text-muted-foreground text-pretty">{caveat}</span>}
-
-            <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              {status}
-              {elevator.access_note && <AccessTipBadge />}
-              {upcomingOutages.length > 0 && <OutagePlannedBadge />}
-              {elevator.maintenanceLabel && <MaintenanceBadge when={elevator.maintenanceLabel} />}
+          {/* Fills the row's height: title at the top, status pinned to the bottom, lining up with the photo */}
+          <span className="flex min-w-0 flex-1 flex-col justify-between gap-1">
+            <span className="flex flex-col gap-1">
+              <span className="text-headline font-semibold text-pretty">{titleText}</span>
+              {caveat && <span className="text-footnote text-muted-foreground text-pretty">{caveat}</span>}
             </span>
 
-            {(elevator.ada === "0" || (isOut && toBool(elevator.isRedundant))) && (
-              <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-footnote text-muted-foreground">
-                {isOut && toBool(elevator.isRedundant) && <span>Another elevator covers this route</span>}
-                {elevator.ada === "0" && <span>Not ADA accessible</span>}
+            <span className="flex flex-col gap-1">
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                {status}
+                {elevator.access_note && <AccessTipBadge />}
+                {upcomingOutages.length > 0 && <OutagePlannedBadge />}
+                {elevator.maintenanceLabel && <MaintenanceBadge when={elevator.maintenanceLabel} />}
               </span>
-            )}
+
+              {(elevator.ada === "0" || (isOut && toBool(elevator.isRedundant))) && (
+                <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-footnote text-muted-foreground">
+                  {isOut && toBool(elevator.isRedundant) && <span>Another elevator covers this route</span>}
+                  {elevator.ada === "0" && <span>Not ADA accessible</span>}
+                </span>
+              )}
+            </span>
           </span>
         </button>
 
-        {/* Same 4:3 box on every row, flush to the top and right edges. Opening the row fades it out
-            as the full photo grows in below; only opacity and transform animate */}
+        {/* A 104px square on every row, flush to the top and right edges, photo cropped to fill. Rows
+            are at least that tall, so one-line rows grow to meet it. Opening the row fades it out as
+            the full photo grows in below; only opacity and transform animate */}
         {elevator.imageURL && (
           <button
             type="button"
@@ -170,7 +176,7 @@ const ElevatorCard: React.FC<{
             tabIndex={isOpen ? -1 : undefined}
             aria-hidden={isOpen || undefined}
             className={cn(
-              "absolute right-0 top-0 aspect-[4/3] w-28 origin-top-right overflow-hidden bg-muted transition-[opacity,transform] motion-reduce:transition-none",
+              "absolute right-0 top-0 size-[104px] origin-top-right overflow-hidden bg-muted transition-[opacity,transform] motion-reduce:transition-none",
               EXPAND_EASE,
               isOpen ? "pointer-events-none scale-90 opacity-0" : "scale-100 opacity-100",
               "after:absolute after:inset-0 after:transition-colors after:duration-150 hover:after:bg-black/10 active:after:bg-black/20",

@@ -9,21 +9,18 @@ export const circleOffsetDistance = -10;
 export const currentOutageProps = {
   id: "outages",
   source: "outage-data",
-  filter: ["==", ["get", "isStreet"], true], // hide platform elevators on map
+  // Street elevators only (platform elevators aren't on the map); ramps keep their own ramp icon
+  filter: [
+    "all",
+    ["==", ["get", "isStreet"], true],
+    ["!=", ["slice", ["downcase", ["to-string", ["get", "elevatorno"]]], 0, 2], "ra"],
+  ],
   type: "symbol", // Using symbol type for icon display
   layout: {
-    "icon-image": [
-      "case",
-      ["==", ["get", "isBroken"], false], // If elevator is working
-      "liftgood", // Use checkmark icon
-      ["==", ["get", "isBroken"], true], // If elevator is broken
-      "liftbad", // Use X icon
-      "liftgood", // Default to checkmark icon in case of missing data
-    ],
-    
-    "icon-size": ["step", ["zoom"], 0, elevatorView-1, 0.9],
+    // One marker per street elevator (see ElevatorMarker): a red octagon badge when it's out
+    "icon-image": ["case", ["==", ["get", "isBroken"], true], "elevator-marker-out", "elevator-marker-ok"],
+    "icon-size": ["step", ["zoom"], 0, elevatorView - 1, 0.95],
     "icon-anchor": "center",
-    "icon-offset": [0, offsetDistance],
     "icon-allow-overlap": ["step", ["zoom"], false, elevatorView, true],
     "icon-ignore-placement": true,
     "icon-padding": 2,
@@ -48,19 +45,16 @@ export const stationOutageProps = {
   source: "station-outage-data",
   type: "symbol",
   layout: {
+    // One access marker per accessible station (see StationMarker): status by badge shape and color
     "icon-image": [
       "case",
-      ["==", ["get", "isProblem"], false], // If elevator is working
-      "liftgood", // Use checkmark icon
-      ["==", ["get", "isOut"], true], // If all elevators are out
-      "liftbad", // Use X icon
-      ["==", ["get", "isProblem"], true], // If elevator is broken
-      "warn", // Use warning icon
-      "", // Default to nothing in case of missing data
+      ["==", ["get", "isProblem"], false], "station-marker-ok",
+      ["==", ["get", "isOut"], true], "station-marker-out",
+      ["==", ["get", "isProblem"], true], "station-marker-partial",
+      "",
     ],
-    "icon-size": ["interpolate", ["linear"], ["zoom"], elevatorView-2, 0.75, elevatorView-1, 0.8, elevatorView+1, 0],
+    "icon-size": ["interpolate", ["linear"], ["zoom"], dotView, 0.8, elevatorView - 1, 1],
     "icon-anchor": "center",
-    "icon-offset": [0, offsetDistance],
     "icon-allow-overlap": ["step", ["zoom"], true, elevatorView, false],
     "icon-padding": 0,
     // "auto" respects symbol-sort-key for collision resolution; "source" ignores it.
@@ -82,8 +76,9 @@ export const stationOutageProps = {
     "text-offset": [1.5, 0],
   },
   paint: {
-    // Hidden below zoom dotiew (dots take over); disappear again at elevatorView.
-    "icon-opacity": ["step", ["zoom"], 0, dotView, 1, elevatorView, 0],
+    // Hidden below dotView (dots take over); hands off to the street-level station capsule
+    // (stationComplexProps) at the zoom it appears, so the two never show together
+    "icon-opacity": ["step", ["zoom"], 0, dotView, 1, elevatorView - 1, 0],
   },
 };
 
@@ -106,15 +101,15 @@ export const stationDotProps = {
     "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 2.5, 10, 3.5],
     "circle-color": [
       "case",
-      ["==", ["get", "isOut"], true],     "#e53935", // red   — all elevators out
-      ["==", ["get", "isProblem"], true], "#f59e0b", // yellow — partial outage
-      "#2bb7ce",                                     // teal  — all working
+      ["==", ["get", "isOut"], true],     "#D33A2C", // red   — all elevators out
+      ["==", ["get", "isProblem"], true], "#E39B0B", // amber — partial outage
+      "#1D9DB8",                                     // teal  — all working (same as StationMarker)
     ],
     "circle-translate-anchor": "viewport",
     "circle-stroke-width": 1,
-    "circle-stroke-color": "#111",
+    "circle-stroke-color": "#FFFFFF",
     "circle-opacity": ["step", ["zoom"], 1, dotView, 0],
-    "circle-stroke-opacity": ["step", ["zoom"], 0.5, dotView, 0],
+    "circle-stroke-opacity": ["step", ["zoom"], 1, dotView, 0],
   },
 };
 

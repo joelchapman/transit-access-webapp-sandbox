@@ -175,6 +175,44 @@ export function applyMapTheme<T>(source: T): T {
     if (/^mta-(subwaylines-labels|sir-lines-label)/.test(layer.id)) layout(layer.id, { visibility: "none" });
   }
 
+  // Stations: the app's stationOutages layer draws one access marker per accessible station
+  // (components/StationMarker). These export layers keep the names and tap targets, and drop the
+  // wheelchair tile and red X they used to draw. Names come in at street-grid zoom, Apple style.
+  layout("mta-subway-stations-accessible", {
+    "icon-image": "",
+    "text-size": ["interpolate", ["linear"], ["zoom"], 13, 10.5, 15, 12],
+    // Fixed to the right of the marker: a complex's stations share a spot and a name, and a fixed
+    // anchor lets the duplicates collide away instead of each finding its own space
+    "text-anchor": "left",
+    "text-radial-offset": 1.9, // clears the status badge on the marker's top right
+  });
+  paint("mta-subway-stations-accessible", {
+    "text-color": "#1D1D1F",
+    "text-halo-color": "#FFFFFF",
+    "text-halo-width": 1.5,
+    "text-halo-blur": 0.5,
+    "text-opacity": ["step", ["zoom"], 0, 13, 1, 15, 0],
+  });
+  // No step-free access: a small gray dot and a quieter name. Red stays reserved for outages
+  layout("mta-subway-stations-inaccessible", {
+    "icon-image": "station-marker-none",
+    "icon-size": ["interpolate", ["linear"], ["zoom"], 12, 0.75, 15, 1],
+    "icon-anchor": "center",
+    "text-size": ["interpolate", ["linear"], ["zoom"], 14, 9, 16, 10.5],
+    "text-font": ["Montserrat Medium", "Arial Unicode MS Regular"],
+    "text-radial-offset": 0.6,
+  });
+  paint("mta-subway-stations-inaccessible", {
+    "text-color": "#8A8883",
+    "text-opacity": ["step", ["zoom"], 0, 14, 1],
+  });
+
+  // Street elevators: the app's "outages" layer draws one marker per elevator (components/ElevatorMarker).
+  // This export layer keeps the "Street Elevator" labels and tap target, and keeps its icon only for ramps
+  const isRamp = ["==", ["slice", ["downcase", ["get", "elevatorno"]], 0, 2], "ra"];
+  layout("transit-elevators", { "icon-image": ["case", isRamp, "ramp", ""] });
+  paint("transit-elevators", { "text-color": C.label, "text-halo-color": "#FFFFFF", "text-halo-width": 1.25 });
+
   return style as T;
 }
 

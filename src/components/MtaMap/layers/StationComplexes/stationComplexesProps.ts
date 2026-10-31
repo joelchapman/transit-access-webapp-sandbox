@@ -15,37 +15,11 @@ export const stationComplexProps = {
     "symbol-sort-key": 10,
     "symbol-z-order": "auto",
     "text-variable-anchor": ["bottom", "right", "top", "left"],
-    "icon-image": [
-      "case",
-      ["==", ["get", "isProblem"], false], // If elevator is working
-      "border-dot-13-blue", // Use blue dot
-      ["==", ["get", "isOut"], true], // If all elevators are out
-      "border-dot-13-red", // Use red dot
-      ["==", ["get", "isProblem"], true], // If elevator is broken
-      "border-dot-13-yellow", // Use yellow dot
-      "border-dot-13", // Default in case of missing data
-    ],
+    // Street-level zoom: a neutral white capsule as the tap target; the elevators around it carry status
+    "icon-image": "station-pill",
 "text-font": ["Montserrat Bold", "Arial Unicode MS Regular"],
         "icon-allow-overlap": ["step", ["zoom"], true, elevatorView-2, true],
-        "icon-size": [
-          "step",
-          ["zoom"],
-          0.5,
-          10,
-          0.5,
-          11,
-          0.6,
-          12,
-          0.6,
-          14,
-          0.7,
-          15,
-          2,
-          16,
-          2.2,
-          17,
-          3
-        ],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 15, 0.85, 17, 1.1],
         "text-anchor": ["step", ["zoom"], "left", 17, "top"],
         "text-field": ["to-string", ["get", "stop_name"]]
       },
