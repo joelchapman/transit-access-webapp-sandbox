@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 
 // --fan is how far each bullet slides to undo its overlap (overlap + a 2px gap)
 const SIZES = {
+  xs: "size-4 [&:not(:first-child)]:-ml-[5px] [--fan:6px]",
   sm: "size-[22px] [&:not(:first-child)]:-ml-[7px] [--fan:9px]",
   md: "size-6 [&:not(:first-child)]:-ml-2 [--fan:10px]",
   lg: "size-8 [&:not(:first-child)]:-ml-2.5 [--fan:12px]",

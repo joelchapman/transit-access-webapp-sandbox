@@ -204,7 +204,9 @@ export function applyMapTheme<T>(source: T): T {
   });
   paint("mta-subway-stations-inaccessible", {
     "text-color": "#8A8883",
-    "text-opacity": ["step", ["zoom"], 0, 14, 1],
+    // Matches the raw Studio style's original threshold (and the accessible labels' own) —
+    // was bumped to 14 here, making inaccessible names only show up a zoom level closer in
+    "text-opacity": ["step", ["zoom"], 0, 13, 1],
   });
 
   // Street elevators: the app's "outages" layer draws one marker per elevator (components/ElevatorMarker).

@@ -40,6 +40,33 @@ export function ElevatorMarker({ state, size = ELEVATOR_MARKER_SIZE }: { state: 
   );
 }
 
+// A platform elevator (not shown on the map itself, just in lists/legend) — same shape and
+// out-state badge as ElevatorMarker, with the fill inverted: white square, dark icon, instead
+// of the dark square street elevators use, so the two read as distinct at a glance.
+export function ElevatorMarkerInverted({ state, size = ELEVATOR_MARKER_SIZE }: { state: ElevatorState; size?: number }) {
+  const icon = 15;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${ELEVATOR_MARKER_SIZE} ${ELEVATOR_MARKER_SIZE}`} aria-hidden="true">
+      <rect
+        x={CENTER - SIDE / 2 - RING}
+        y={CENTER - SIDE / 2 - RING}
+        width={SIDE + RING * 2}
+        height={SIDE + RING * 2}
+        rx={9}
+        fill={FILL}
+      />
+      <rect x={CENTER - SIDE / 2} y={CENTER - SIDE / 2} width={SIDE} height={SIDE} rx={7} fill="#FFFFFF" />
+      <MoveVertical x={CENTER - icon / 2} y={CENTER - icon / 2} width={icon} height={icon} color={FILL} strokeWidth={2.6} />
+      {state === "out" && (
+        <>
+          <circle cx={27.5} cy={6.5} r={6.5} fill="#FFFFFF" />
+          <OctagonX x={27.5 - 5} y={6.5 - 5} width={10} height={10} color="#B3221B" strokeWidth={2.75} />
+        </>
+      )}
+    </svg>
+  );
+}
+
 // Long-term outage coming up: placed on the marker's bottom-right corner by the map layer
 export const PLANNED_BADGE_SIZE = 16;
 

@@ -61,6 +61,7 @@ import {
   easyToReadDate,
   getOutageDurationDays,
   getElevatorMaintenanceToday,
+  getSoonestUpcomingOutage,
 } from "@/utils/dataUtils";
 import { stationIDToComplexID } from "@/utils/elevatorIndexUtils";
 
@@ -299,9 +300,7 @@ function handleElevatorClick(
     formattedDate = convertDate(rawDate);
   }
 
-  const upcomingOutage = upcomingElevatorData?.find(
-    (el) => el.equipment === elevatorno,
-  );
+  const upcomingOutage = getSoonestUpcomingOutage(elevatorno, upcomingElevatorData);
 
   // Same shape and wording as the station list builds, so the opened views read identically
   const filteredOutage = upcomingOutage
@@ -362,8 +361,6 @@ function handleStationComplexClick(
   userLocation?: [number, number] | null,
   walkingToleranceMiles?: number | null,
 ) {
-  mapRef.setLayoutProperty("building-extrusion", "visibility", "visible");
-
   const { complex_id, stop_name, ada, route, isOut, isProblem } =
     feature.properties;
 
@@ -424,9 +421,7 @@ function handleStationComplexClick(
       (out) => out.elevatorNo === elevatorno,
     );
 
-    const upcomingOutage = upcomingElevatorData?.find(
-      (el) => el.equipment === elevatorno,
-    );
+    const upcomingOutage = getSoonestUpcomingOutage(elevatorno, upcomingElevatorData);
 
     const filteredOutage = upcomingOutage
       ? {

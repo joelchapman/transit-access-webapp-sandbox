@@ -1,5 +1,4 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Switch } from "@/components/ui/switch";
 import mapboxgl, { LngLat } from "mapbox-gl";
 import dotenv from "dotenv";
 import {
@@ -18,6 +17,8 @@ import {
   DEFAULT_ZOOM,
   BIRDSEYE_CENTER,
   BIRDSEYE_CENTER_DESKTOP,
+  BIRDSEYE_CENTER_TRUE_NORTH,
+  BIRDSEYE_CENTER_TRUE_NORTH_DESKTOP,
   BIRDSEYE_ZOOM,
 } from "./mtaMapOptions";
 import {
@@ -69,6 +70,9 @@ mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 const MOBILE_POPUPSHIFT_DVH = 30; // map shift on mobile (dvh) -- lower value shifts map up
 const DESKTOP_POPUPSHIFT_LEFT = 100; // map shift left on desktop (px)
 const DESKTOP_POPUPSHIFT_TOP = -30; // map shift top on desktop (px)
+// Matches building-extrusion's minzoom in mapbox-style.json/mapTheme.ts — below this,
+// the layer doesn't render, so the toggle shouldn't either
+const BUILDING_EXTRUSION_MIN_ZOOM = 15;
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MtaMap = () => {
@@ -98,10 +102,20 @@ const MtaMap = () => {
   const [zoomLevel, setZoomLevel] = useState(DEFAULT_ZOOM);
 
   const [show3DToggle, setShow3DToggle] = React.useState(false);
+  const [buildings3DOn, setBuildings3DOn] = useState(true);
+  // Mirrors buildings3DOn for the "pitch" listener below, which is bound once at map
+  // init and would otherwise see a stale value from its first render's closure.
+  const buildings3DOnRef = useRef(buildings3DOn);
+  useEffect(() => {
+    buildings3DOnRef.current = buildings3DOn;
+  }, [buildings3DOn]);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(
     null,
   );
   const [locateSignal, setLocateSignal] = useState(0);
+  // Bumped each time the zoom-out ("birdseye") button is tapped, so HomeSheet can
+  // collapse to its minimum size — distinct from organically scrolling/pinching out
+  const [zoomOutSignal, setZoomOutSignal] = useState(0);
   const [mapCenterLocation, setMapCenterLocation] = useState<
     [number, number] | null
   >(null);
@@ -110,6 +124,17 @@ const MtaMap = () => {
   const [pinDrop, setPinDrop] = useState(false);
   const [isZoomedOut, setIsZoomedOut] = useState(false);
   const isZoomedOutRef = useRef(false);
+  // Hides the pin right when "zoom out" is tapped (its old position doesn't apply to the
+  // birdseye view); dragging or zooming back in clears this and the pin reappears
+  const [pinSuppressed, setPinSuppressed] = useState(false);
+  // Where the camera was right before "zoom out" flew to the birdseye view — lets "zoom in"
+  // return there exactly when the user never dragged (so no pin appeared) in between
+  const preZoomOutPositionRef = useRef<{
+    center: [number, number];
+    zoom: number;
+    bearing: number;
+    pitch: number;
+  } | null>(null);
 
   const [stationData, setStationData] = useState<MtaStationData | null>(null);
   const [systemAlerts, setSystemAlerts] = useState<AlertData[]>([]);
@@ -534,7 +559,8 @@ const MtaMap = () => {
 
       mapRef.current.on("pitch", () => {
         const pitch = mapRef.current.getPitch();
-        setShow3DToggle(pitch !== 0);
+        // Keep the toggle visible if buildings are on, even once pitch settles back to 0
+        setShow3DToggle(pitch !== 0 || buildings3DOnRef.current);
         document.documentElement.style.setProperty(
           "--map-pitch-deg",
           `${pitch}deg`,
@@ -545,6 +571,7 @@ const MtaMap = () => {
         showCenterPinRef.current = true;
         setShowCenterPin(true);
         setPinDrop(true);
+        setPinSuppressed(false);
       });
 
       mapRef.current.on("dragend", () => {
@@ -823,7 +850,7 @@ const MtaMap = () => {
     <>
       <div ref={mapContainer} id="map-container" className="map-container" />
 
-      {showCenterPin && !stationPopupOpen && (
+      {showCenterPin && !stationPopupOpen && !pinSuppressed && (
         <div
           className={`map-center-pin${pinDrop ? " floating" : ""}`}
           aria-hidden="true"
@@ -850,12 +877,32 @@ const MtaMap = () => {
             if (!map) return;
 
             if (isZoomedOutRef.current) {
-              const target = (showCenterPinRef.current && mapCenterLocation)
-                ? mapCenterLocation
-                : userLocation ?? null;
-              if (target) {
+              // Zooming back in — any pin that existed before "zoom out" reappears
+              setPinSuppressed(false);
+              if (showCenterPinRef.current && mapCenterLocation) {
+                // User dragged while zoomed out, revealing the pin — return to it
                 map.flyTo({
-                  center: target,
+                  center: mapCenterLocation,
+                  zoom: DEFAULT_ZOOM,
+                  bearing: map.getBearing(),
+                  pitch: 0,
+                  duration: 800,
+                  essential: true,
+                });
+              } else if (preZoomOutPositionRef.current) {
+                // No drag happened — go back exactly where we were, not to the hidden pin
+                const pos = preZoomOutPositionRef.current;
+                map.flyTo({
+                  center: pos.center,
+                  zoom: pos.zoom,
+                  bearing: pos.bearing,
+                  pitch: pos.pitch,
+                  duration: 800,
+                  essential: true,
+                });
+              } else if (userLocation) {
+                map.flyTo({
+                  center: userLocation,
                   zoom: DEFAULT_ZOOM,
                   bearing: map.getBearing(),
                   pitch: 0,
@@ -868,6 +915,19 @@ const MtaMap = () => {
               return;
             }
 
+            const { lng: preLng, lat: preLat } = map.getCenter();
+            preZoomOutPositionRef.current = {
+              center: [preLng, preLat],
+              zoom: map.getZoom(),
+              bearing: map.getBearing(),
+              pitch: map.getPitch(),
+            };
+            // Hide any existing pin for the birdseye view — dragging or zooming back
+            // in (to the same pin location) will bring it back
+            setPinSuppressed(true);
+            // Tell HomeSheet to collapse to its minimum size for the birdseye view
+            setZoomOutSignal((n) => n + 1);
+
             cleanUpPopups();
             setStationView(null);
             setElevatorView(null);
@@ -875,8 +935,14 @@ const MtaMap = () => {
             isZoomedOutRef.current = true;
 
             const isDesktop = window.innerWidth >= 768;
+            // BIRDSEYE_CENTER/DESKTOP were tuned at the Manhattan tilt and crop the system
+            // wrong (too far left) at any other bearing — same convention as data-bearing-manhattan
+            const isManhattanTilt = Math.abs(map.getBearing() - setManhattanTilt()) < 0.5;
+            const birdseyeCenter = isDesktop
+              ? (isManhattanTilt ? BIRDSEYE_CENTER_DESKTOP : BIRDSEYE_CENTER_TRUE_NORTH_DESKTOP)
+              : (isManhattanTilt ? BIRDSEYE_CENTER : BIRDSEYE_CENTER_TRUE_NORTH);
             map.flyTo({
-              center: isDesktop ? BIRDSEYE_CENTER_DESKTOP : BIRDSEYE_CENTER,
+              center: birdseyeCenter,
               zoom: BIRDSEYE_ZOOM,
               pitch: 0,
               bearing: map.getBearing(),
@@ -907,22 +973,8 @@ const MtaMap = () => {
                 "none",
               );
             }
-
-            map.once("moveend", () => {
-              const isMobile = window.innerWidth < 768;
-              const dotPixel: [number, number] = isMobile
-                ? [
-                    window.innerWidth / 2,
-                    (window.innerHeight * (1 - MOBILE_POPUPSHIFT_DVH / 100)) /
-                      2,
-                  ]
-                : [
-                    window.innerWidth / 2 + DESKTOP_POPUPSHIFT_LEFT,
-                    window.innerHeight / 2 + DESKTOP_POPUPSHIFT_TOP,
-                  ];
-              const { lng: dLng, lat: dLat } = map.unproject(dotPixel);
-              setMapCenterLocation([dLng, dLat]);
-            });
+            // No pin reveal here — the pin only appears once the user actually drags
+            // (see the "dragstart"/"dragend" handlers above)
           }}
         >
           {isZoomedOut ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
@@ -936,6 +988,7 @@ const MtaMap = () => {
         userLocation={userLocation}
         overrideLocation={mapCenterLocation}
         locateSignal={locateSignal}
+        zoomOutSignal={zoomOutSignal}
         elevatorData={elevatorDataState}
         upcomingElevatorData={upcomingRawData}
         numOutElevators={elevatorStats.numOutElevators}
@@ -947,31 +1000,33 @@ const MtaMap = () => {
       />
 
       <>
-        {/* Toggle floating on top of map, outside popup */}
-        {show3DToggle && elevatorView && (
-          // The whole pill is the tap target (44px tall), not just the switch inside it
-          <label
-            htmlFor="toggle-3d-buildings"
-            className="show-3d-button-wrapper flex min-h-11 cursor-pointer items-center gap-2.5 rounded-full bg-background py-1.5 pl-4 pr-2 text-footnote font-semibold text-foreground shadow-[0_1px_2px_oklch(0_0_0/0.08),0_4px_12px_oklch(0_0_0/0.1)]"
+        {/* show3DToggle tracks pitch !== 0 || buildings3DOn (see the "pitch" listener above
+            and this button's onClick) — stays visible while buildings are on even at pitch 0.
+            Also gated on zoom: building-extrusion itself doesn't render below that zoom. */}
+        {show3DToggle && zoomLevel >= BUILDING_EXTRUSION_MIN_ZOOM && (
+          <button
+            type="button"
+            className={`show-3d-button-wrapper map-zoom-out-btn text-[11px] font-bold${buildings3DOn ? " map-zoom-out-btn--active" : ""}`}
             style={{ top: "max(0.75rem, env(safe-area-inset-top))" }}
+            aria-pressed={buildings3DOn}
+            aria-label={buildings3DOn ? "Hide 3D buildings" : "Show 3D buildings"}
+            title={buildings3DOn ? "Hide 3D buildings" : "Show 3D buildings"}
+            onClick={() => {
+              if (!mapRef.current) return;
+              const next = !buildings3DOn;
+              setBuildings3DOn(next);
+              setShow3DToggle(mapRef.current.getPitch() !== 0 || next);
+              if (mapRef.current.getLayer("building-extrusion")) {
+                mapRef.current.setLayoutProperty(
+                  "building-extrusion",
+                  "visibility",
+                  next ? "visible" : "none",
+                );
+              }
+            }}
           >
-            3D buildings
-            <Switch
-              id="toggle-3d-buildings"
-              defaultChecked
-              onCheckedChange={(checked) => {
-                if (!mapRef.current) return;
-                const visibility = checked ? "visible" : "none";
-                if (mapRef.current.getLayer("building-extrusion")) {
-                  mapRef.current.setLayoutProperty(
-                    "building-extrusion",
-                    "visibility",
-                    visibility,
-                  );
-                }
-              }}
-            />
-          </label>
+            3D
+          </button>
         )}
       </>
     </>

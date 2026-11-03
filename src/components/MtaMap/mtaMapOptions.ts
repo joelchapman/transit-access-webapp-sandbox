@@ -10,8 +10,12 @@ const themedStyle = applyMapTheme(mapStyle) as unknown as StyleSpecification;
 
 export const DEFAULT_ZOOM = 13;
 export const DEFAULT_CENTER: [number, number] = [-73.98465318925187, 40.7564263693059];
+// Tuned at the Manhattan tilt — the system sits off-center on screen once rotated
 export const BIRDSEYE_CENTER: [number, number] = [-73.83498613423828, 40.804639553395816];
 export const BIRDSEYE_CENTER_DESKTOP: [number, number] = [-73.925, 40.755]; // slightly NE for desktop (panel on left shifts view)
+// Separate centers for true north (bearing 0)
+export const BIRDSEYE_CENTER_TRUE_NORTH: [number, number] = [-73.89998613423828, 40.800639553395816];
+export const BIRDSEYE_CENTER_TRUE_NORTH_DESKTOP: [number, number] = [-73.975, 40.755];
 export const BIRDSEYE_ZOOM = 10.009972810309067;
 
 const DEFAULT_BEARING = setManhattanTilt();

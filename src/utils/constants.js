@@ -74,4 +74,15 @@ export const ROUTE_ORDER = [
     "LIRR",
     "METRONORTH"
   ];
+
+// Shared by HomeSheet's "Get in touch" list and the Legend page's "About" section
+export const COMMUNITY_LINKS = [
+  { label: "Send feedback", href: "https://app.youform.com/forms/dnefmhvd" },
+  { label: "Email the team", href: "mailto:team@transitaccess.org" },
+  { label: "Join our Discord", href: "https://discord.gg/HgZVSJ9SE8" },
+  { label: "Buy us a coffee", href: "https://www.buymeacoffee.com/transitaccess" },
+  { label: "Instagram", href: "https://www.instagram.com/transitaccess/" },
+  { label: "TikTok", href: "https://www.tiktok.com/@transitaccess" },
+  { label: "Bluesky", href: "https://bsky.app/profile/transitaccess.bsky.social" },
+];
   

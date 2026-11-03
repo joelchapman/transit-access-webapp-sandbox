@@ -11,10 +11,12 @@ import { Button } from "@/components/ui/button";
 import { LineBullets } from "@/components/LineBullets/LineBullets";
 import { StatusIcon } from "@/components/StatusIcon/StatusIcon";
 import LegendPage from "@/components/Legend/LegendPage";
-import { LocationPin, AccessibleIconWhite, ElevatorIcon, ElevatorInvertedIcon, Ramp } from "@/components/icons";
+import { LocationPin, AccessibleIconWhite, ElevatorIcon, Ramp } from "@/components/icons";
+import { ElevatorMarkerInverted } from "@/components/ElevatorMarker/ElevatorMarker";
 import { useNearbyStations, WALKING_RADII, formatWalkingDistance } from "./useNearbyStations";
 import { getComplexesDataset } from "@/lib/dataStore";
 import { getElevatorsByComplexId } from "@/utils/dataUtils";
+import { COMMUNITY_LINKS } from "@/utils/constants";
 import { MtaStationData, MtaStationFeature } from "@/utils/types";
 import { cn } from "@/lib/utils";
 
@@ -67,6 +69,8 @@ interface HomeSheetProps {
   userLocation: LngLat | null;
   overrideLocation: LngLat | null;
   locateSignal: number;
+  // Bumped each time the map's "zoom out" (birdseye) button is tapped
+  zoomOutSignal: number;
   elevatorData: any[] | null;
   upcomingElevatorData: any[] | null;
   // Station or elevator details, built by the map handlers, shown as a sub-page
@@ -74,16 +78,6 @@ interface HomeSheetProps {
   onBack: () => void;
   onSelectStation: (feature: MtaStationFeature, walkingToleranceMiles?: number | null) => void;
 }
-
-const COMMUNITY_LINKS = [
-  { label: "Send feedback", href: "https://app.youform.com/forms/dnefmhvd" },
-  { label: "Email the team", href: "mailto:team@transitaccess.org" },
-  { label: "Join our Discord", href: "https://discord.gg/HgZVSJ9SE8" },
-  { label: "Buy us a coffee", href: "https://www.buymeacoffee.com/transitaccess" },
-  { label: "Instagram", href: "https://www.instagram.com/transitaccess/" },
-  { label: "TikTok", href: "https://www.tiktok.com/@transitaccess" },
-  { label: "Bluesky", href: "https://bsky.app/profile/transitaccess.bsky.social" },
-];
 
 function StationLabel({ name, routes }: { name: string; routes: string[] }) {
   return (
@@ -98,14 +92,19 @@ const toBool = (v: unknown) => v === true || v === "true" || v === "1";
 
 // A status icon that reveals its label on hover (desktop) or tap (touch) — a stateful tap toggle
 // layered under the same hover-only CSS language LineBullets uses for its fan-out.
-// tone="out" makes the revealed label match OutOfServicePill's look (solid red, white text).
-function IconWithLabel({ icon, label, tone = "neutral" }: { icon: React.ReactNode; label: string; tone?: "out" | "neutral" }) {
+// tone="out" makes the revealed label match OutOfServicePill's look (solid red, white text);
+// tone="ok" matches InServicePill's look (muted teal, teal text).
+function IconWithLabel({ icon, label, tone = "neutral" }: { icon: React.ReactNode; label: string; tone?: "out" | "ok" | "neutral" }) {
   const [open, setOpen] = useState(false);
-  const pill = tone === "out";
+  const pill = tone !== "neutral";
   return (
     <button
       type="button"
       onClick={(e) => {
+        // On a hover-capable pointer the label is already showing by the time a click
+        // happens (CSS :hover), so a click should always fall through to the row. On
+        // touch, there's no hover reveal, so tapping the icon toggles the label itself.
+        if (window.matchMedia("(hover: hover)").matches) return;
         e.stopPropagation();
         setOpen((o) => !o);
       }}
@@ -116,15 +115,21 @@ function IconWithLabel({ icon, label, tone = "neutral" }: { icon: React.ReactNod
       <span
         aria-hidden="true"
         className={cn(
-          "overflow-hidden whitespace-nowrap text-caption font-semibold transition-[max-width,margin,padding,background-color,color,opacity] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+          "overflow-hidden whitespace-nowrap text-[10px] font-semibold leading-[1.1] transition-[max-width,margin,padding,background-color,color,opacity] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
           pill && "rounded-full",
           open
-            ? cn("ml-1 max-w-[120px] opacity-100", pill && "bg-status-out px-2 py-0.5 text-white")
+            ? cn(
+                "ml-1 max-w-[120px] opacity-100",
+                tone === "out" && "bg-status-out px-2 py-0.5 text-white",
+                tone === "ok" && "bg-status-ok-muted px-2 py-0.5 text-status-ok-foreground",
+              )
             : cn(
                 "max-w-0 opacity-0",
                 "[@media(hover:hover)]:group-hover/hint:ml-1 [@media(hover:hover)]:group-hover/hint:max-w-[120px] [@media(hover:hover)]:group-hover/hint:opacity-100",
-                pill &&
+                tone === "out" &&
                   "[@media(hover:hover)]:group-hover/hint:bg-status-out [@media(hover:hover)]:group-hover/hint:px-2 [@media(hover:hover)]:group-hover/hint:py-0.5 [@media(hover:hover)]:group-hover/hint:text-white",
+                tone === "ok" &&
+                  "[@media(hover:hover)]:group-hover/hint:bg-status-ok-muted [@media(hover:hover)]:group-hover/hint:px-2 [@media(hover:hover)]:group-hover/hint:py-0.5 [@media(hover:hover)]:group-hover/hint:text-status-ok-foreground",
               ),
         )}
       >
@@ -151,20 +156,21 @@ function OutElevatorRow({ el }: { el: any }) {
   return (
     <div className="flex items-start gap-2 py-1.5 pl-8 pr-4 text-footnote text-muted-foreground">
       <span className="mt-0.5 flex shrink-0 items-center gap-1.5">
-        <IconWithLabel icon={<OutOfServiceIcon className="size-4" />} label="Out of service" tone="out" />
+        <IconWithLabel icon={<OutOfServiceIcon className="size-3.5" />} label="Out of service" tone="out" />
         {el.properties.isRedundant === "1" && (
           <IconWithLabel
-            icon={<Star className="size-4 text-status-ok" strokeWidth={2.5} aria-hidden="true" />}
+            icon={<Star className="size-3.5 text-status-ok" strokeWidth={2.5} aria-hidden="true" />}
             label="Redundant elevator"
+            tone="ok"
           />
         )}
         <span aria-hidden="true">
-          {isRamp ? <Ramp size={16} /> : isStreet ? <ElevatorIcon size={16} /> : <ElevatorInvertedIcon size={16} />}
+          {isRamp ? <Ramp size={16} /> : isStreet ? <ElevatorIcon size={16} /> : <ElevatorMarkerInverted state="ok" size={16} />}
         </span>
       </span>
       <span className="min-w-0 flex-1 truncate">
         {title}
-        {!isRamp && lines && <> <LineBullets routes={lines.split(" ").filter(Boolean)} size="sm" animated={false} /></>}
+        {!isRamp && lines && <> <LineBullets routes={lines.split(" ").filter(Boolean)} size="xs" animated={false} /></>}
         {direction && ` (${direction})`}
       </span>
     </div>
@@ -305,6 +311,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
   userLocation,
   overrideLocation,
   locateSignal,
+  zoomOutSignal,
   elevatorData,
   upcomingElevatorData,
   page,
@@ -324,6 +331,15 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
     if (page) setIsLegendOpen(false);
     setSnap(page ? SNAP_HALF : SNAP_PEEK);
   }, [page]);
+
+  // Map controls (geolocate/zoom-out/compass) lift to stay above the sheet as it rises to
+  // its half-height snap point. At full height, they stop following and the sheet (which
+  // sits above them in z-index) covers them instead of pushing them off the top of the screen.
+  useEffect(() => {
+    const height =
+      snap === SNAP_FULL ? `${SNAP_HALF * 100}dvh` : typeof snap === "number" ? `${snap * 100}dvh` : snap ?? SNAP_PEEK;
+    document.documentElement.style.setProperty("--bottom-popup-h", height);
+  }, [snap]);
 
   const openLegend = () => {
     setIsLegendOpen(true);
@@ -347,6 +363,11 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
   useEffect(() => {
     if (locateSignal > 0 && !page) setSnap((s) => (s === SNAP_PEEK ? SNAP_HALF : s));
   }, [locateSignal]);
+
+  // Tapping the map's zoom-out (birdseye) button collapses the sheet to its minimum size
+  useEffect(() => {
+    if (zoomOutSignal > 0) setSnap(SNAP_PEEK);
+  }, [zoomOutSignal]);
 
   const stationOptions = useMemo(
     () =>
@@ -558,38 +579,44 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                           {nearby.isUsingPin ? "Near the map pin" : "Nearby accessible stations"}
                         </h3>
                       </div>
-                      <div
-                        role="radiogroup"
-                        aria-label="Walking distance"
-                        className="-mt-1.5 flex gap-2 overflow-x-auto px-4 pb-3 pt-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                      >
-                        {WALKING_RADII.map(({ label, value }) => {
-                          const active =
-                            value === null ? nearby.radius === null : nearby.radius !== null && Math.abs(value - nearby.radius) < 0.001;
-                          return (
-                            <button
-                              key={label}
-                              type="button"
-                              role="radio"
-                              aria-checked={active}
-                              onClick={() => nearby.setRadius(value)}
-                              className={cn(
-                                // 32px pill, 44px tap area: the ::before extends the hit box without changing the look
-                                "relative h-8 shrink-0 rounded-full border px-3 text-footnote font-semibold tabular-nums transition-colors duration-150 before:absolute before:inset-x-0 before:-inset-y-1.5",
-                                active
-                                  ? "border-foreground bg-foreground text-background"
-                                  : "border-border text-foreground hover:bg-foreground/[0.04] active:bg-foreground/[0.08]",
-                              )}
-                            >
-                              {label}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      {nearby.showDistances && (
+                        <div
+                          role="radiogroup"
+                          aria-label="Walking distance"
+                          className="-mt-1.5 flex gap-2 overflow-x-auto px-4 pb-3 pt-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                        >
+                          {WALKING_RADII.map(({ label, value }) => {
+                            const active =
+                              value === null ? nearby.radius === null : nearby.radius !== null && Math.abs(value - nearby.radius) < 0.001;
+                            return (
+                              <button
+                                key={label}
+                                type="button"
+                                role="radio"
+                                aria-checked={active}
+                                onClick={() => nearby.setRadius(value)}
+                                className={cn(
+                                  // 32px pill, 44px tap area: the ::before extends the hit box without changing the look
+                                  "relative h-8 shrink-0 rounded-full border px-3 text-footnote font-semibold tabular-nums transition-colors duration-150 before:absolute before:inset-x-0 before:-inset-y-1.5",
+                                  active
+                                    ? "border-foreground bg-foreground text-background"
+                                    : "border-border text-foreground hover:bg-foreground/[0.04] active:bg-foreground/[0.08]",
+                                )}
+                              >
+                                {label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
 
                       {!nearby.hasLocation ? (
                         <p className="px-8 pb-1 text-subhead text-pretty text-muted-foreground">
                           Tap the location button on the map to see accessible stations near you.
+                        </p>
+                      ) : !nearby.showDistances ? (
+                        <p className="px-8 pb-1 text-subhead text-pretty text-muted-foreground">
+                          Transit Access covers NYC subway stations. Drag the map to drop a pin near one.
                         </p>
                       ) : nearby.stations.length === 0 ? (
                         <p className="px-8 pb-1 text-subhead text-pretty text-muted-foreground">
@@ -627,10 +654,28 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                                       label={station.status === "partial" && station.outCount > 0 ? `${station.outCount} out` : undefined}
                                     />
                                     {nearby.showDistances && (
-                                      <span className="pr-1 text-footnote tabular-nums text-muted-foreground">
+                                      <button
+                                        type="button"
+                                        disabled={!nearby.canToggleDistance}
+                                        onClick={
+                                          nearby.canToggleDistance
+                                            ? (e) => {
+                                                e.stopPropagation();
+                                                nearby.toggleDistanceSource();
+                                              }
+                                            : undefined
+                                        }
+                                        aria-label={
+                                          nearby.canToggleDistance
+                                            ? `${nearby.distanceSource === "gps" ? "GPS" : "Map center"} distance: ${formatWalkingDistance(station.walkingMiles)}. Tap to switch.`
+                                            : undefined
+                                        }
+                                        className="flex items-center gap-1 pr-1 text-footnote tabular-nums text-muted-foreground disabled:cursor-default"
+                                      >
+                                        {station.isPinDistance && <LocationPin size="12px" />}
                                         {formatWalkingDistance(station.walkingMiles)}
                                         {station.walkMinutes !== null && ` · ${station.walkMinutes} min`}
-                                      </span>
+                                      </button>
                                     )}
                                   </span>
                                 </span>
@@ -661,7 +706,10 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                             >
                               <span className="flex min-h-14 w-full items-center gap-3 px-4 py-3">
                                 <StationLabel name={row.name} routes={Array.from(row.routes)} />
-                                <StatusChip status={row.status} />
+                                <StatusChip
+                                  status={row.status}
+                                  label={row.status === "partial" && row.outElevators.length > 0 ? `${row.outElevators.length} out` : undefined}
+                                />
                               </span>
                               <OutElevatorList elevators={row.outElevators} />
                             </CommandItem>

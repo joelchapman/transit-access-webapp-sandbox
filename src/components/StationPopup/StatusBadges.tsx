@@ -105,9 +105,18 @@ export const AccessTipBadge = ({ onClick, "aria-label": ariaLabel }: { onClick?:
   </Badge>
 );
 
-export const OutagePlannedBadge = ({ onClick, "aria-label": ariaLabel }: { onClick?: (e: React.MouseEvent) => void; "aria-label"?: string }) => (
+export const OutagePlannedBadge = ({
+  onClick,
+  "aria-label": ariaLabel,
+  isLongTerm,
+}: {
+  onClick?: (e: React.MouseEvent) => void;
+  "aria-label"?: string;
+  // Short-term reads as a lower-severity amber; long-term matches the "out of service" red
+  isLongTerm?: boolean;
+}) => (
   <Badge
-    icon={<Wrench className="size-3 text-status-out" strokeWidth={2.5} aria-hidden="true" />}
+    icon={<Wrench className={cn("size-3", isLongTerm ? "text-status-out" : "text-status-partial")} strokeWidth={2.5} aria-hidden="true" />}
     onClick={onClick}
     aria-label={ariaLabel}
   >
@@ -116,13 +125,14 @@ export const OutagePlannedBadge = ({ onClick, "aria-label": ariaLabel }: { onCli
 );
 
 export const MaintenanceBadge = ({ when }: { when: string }) => (
-  <Badge icon={<Wrench className="size-3 text-status-partial" strokeWidth={2.5} aria-hidden="true" />}>
+  <Badge icon={<Wrench className="size-3 text-status-out" strokeWidth={2.5} aria-hidden="true" />}>
     Maintenance {when}
   </Badge>
 );
 
 export const RedundantBadge = () => (
-  <Badge icon={<Star className="size-3 text-status-ok" strokeWidth={2.5} aria-hidden="true" />}>
-    Redundant elevator
-  </Badge>
+  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-status-ok-muted py-px pl-1.5 pr-2 text-caption font-semibold text-status-ok-foreground">
+    <Star className="size-3" strokeWidth={2.5} aria-hidden="true" />
+    Redundant
+  </span>
 );

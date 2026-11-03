@@ -4,6 +4,7 @@ import { AccessibleIconWhite } from "../icons";
 import { generateSubwayLines } from "@/utils/dataUtils";
 import { longtermOutageThreshold } from "../MtaMap/layers/UpcomingOutages/upcomingOutagesProps";
 import { UpcomingOutage } from "@/utils/types";
+import { cn } from "@/lib/utils";
 
 // The detail blocks an elevator shows once opened, shared by the station list row
 // and the view that opens from tapping an elevator on the map.
@@ -22,20 +23,42 @@ export function AccessTipNote({ note }: { note: string }) {
   );
 }
 
-export function PlannedOutageNotes({ outages }: { outages: UpcomingOutage[] }) {
+export function PlannedOutageNotes({
+  outages,
+  maintenanceLabel,
+}: {
+  outages: UpcomingOutage[];
+  // Present when the outage starts today/tonight/tomorrow — impending, not just long-term,
+  // so it gets the same red treatment even if it's a short one
+  maintenanceLabel?: string | null;
+}) {
   return (
     <>
-      {outages.map((o, i) => (
-        <div key={i} className="flex gap-2.5 rounded-lg bg-status-out-muted p-3 text-subhead text-pretty">
-          <Wrench className="mt-0.5 size-4 shrink-0 text-status-out" strokeWidth={2.25} aria-hidden="true" />
-          <p>
-            <span className="font-semibold">
-              {o.outageDurationDays > longtermOutageThreshold ? "Long-term" : "Short-term"} outage planned{" "}
-            </span>
-            {o.outageDuration} ({o.reason})
-          </p>
-        </div>
-      ))}
+      {outages.map((o, i) => {
+        const isLongTerm = o.outageDurationDays > longtermOutageThreshold;
+        const isImpending = isLongTerm || !!maintenanceLabel;
+        return (
+          <div
+            key={i}
+            className={cn(
+              "flex gap-2.5 rounded-lg p-3 text-subhead text-pretty",
+              isImpending ? "bg-status-out-muted" : "bg-status-partial-muted",
+            )}
+          >
+            <Wrench
+              className={cn("mt-0.5 size-4 shrink-0", isImpending ? "text-status-out" : "text-status-partial")}
+              strokeWidth={2.25}
+              aria-hidden="true"
+            />
+            <p>
+              <span className="font-semibold">
+                Upcoming {isLongTerm ? "Long-term" : "Short-term"} Outage{" "}
+              </span>
+              {o.outageDuration} ({o.reason})
+            </p>
+          </div>
+        );
+      })}
     </>
   );
 }
@@ -58,11 +81,4 @@ export function ElevatorFooter({
       {lines && <span className="flex items-center">{generateSubwayLines(lines, "small", ada, false, {})}</span>}
     </div>
   );
-}
-
-// Some short descriptions run on ("Street to PATH & subways. Leads to mezzanine via a ramp…"):
-// the first sentence is the title, the rest is a caveat set quieter beneath it
-export function splitShortDescription(text: string): { title: string; caveat: string } {
-  const [first, ...rest] = text.trim().split(/(?<=\.)\s+/);
-  return { title: first.replace(/\.$/, ""), caveat: rest.join(" ") };
 }

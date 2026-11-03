@@ -280,6 +280,23 @@ export function getElevatorMaintenanceToday(elevatorno, upcomingElevatorData) {
   return maintenanceTodayLabel(dates);
 }
 
+// An elevator can have more than one upcoming-outage record at once (e.g. a short one
+// tomorrow and a longer one months out) — picking the soonest one, rather than whichever
+// happens to come first in the feed, keeps it the same record getElevatorMaintenanceToday's
+// label describes, so the badge and the detail text never disagree.
+export function getSoonestUpcomingOutage(elevatorno, upcomingElevatorData) {
+  if (!upcomingElevatorData || !elevatorno) return null;
+  const matches = upcomingElevatorData.filter(
+    (u) => u.equipment?.trim().toLowerCase() === elevatorno.trim().toLowerCase(),
+  );
+  if (matches.length === 0) return null;
+  return matches.reduce((soonest, u) => {
+    const date = parse(u.outagedate, "MM/dd/yyyy hh:mm:ss a", new Date());
+    const soonestDate = parse(soonest.outagedate, "MM/dd/yyyy hh:mm:ss a", new Date());
+    return date < soonestDate ? u : soonest;
+  });
+}
+
 export function getComplexMaintenanceToday(complexId, upcomingElevatorData) {
   if (!upcomingElevatorData) return null;
   const elevators = getElevatorsByComplexId(complexId);

@@ -1,21 +1,21 @@
 import React from "react";
-import { ElevatorMarker, ElevatorPlannedBadge } from "@/components/ElevatorMarker/ElevatorMarker";
+import { ElevatorMarker, ElevatorMarkerInverted } from "@/components/ElevatorMarker/ElevatorMarker";
 import { StationMarker } from "@/components/StationMarker/StationMarker";
-import { ElevatorInvertedIcon, Ramp } from "../icons";
+import { Ramp, AccessibleIconWhite } from "../icons";
 import {
-  InServicePill,
-  OutOfServicePill,
   AccessTipBadge,
   OutagePlannedBadge,
+  InServicePill,
+  OutOfServicePill,
   MaintenanceBadge,
   RedundantBadge,
 } from "@/components/StationPopup/StatusBadges";
 import { getADAPctByComplex } from "@/utils/dataUtils";
-import { longtermOutageThreshold } from "@/components/MtaMap/layers/UpcomingOutages/upcomingOutagesProps";
+import { COMMUNITY_LINKS } from "@/utils/constants";
 import pkg from "../../../package.json";
 
-// Reads as a short article: what the live numbers mean, how to read the map and a station's page,
-// then practical notes. Symbols are the real map icons and the same badges the station page renders.
+// Mirrors the old LegendDrawer's content/structure and wording as closely as this page
+// format allows — only the icons/badges are the updated ones from the current design.
 
 interface LegendPageProps {
   numOutElevators: number;
@@ -34,6 +34,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Prose({ children }: { children: React.ReactNode }) {
   return <p className="max-w-[65ch] text-body leading-relaxed text-pretty">{children}</p>;
+}
+
+// A number called out inline — bold italic with a thin stroke, like the old legend's counts
+function Stat({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="font-black italic tabular-nums" style={{ WebkitTextStroke: "0.5px currentColor" }}>
+      {children}
+    </span>
+  );
 }
 
 // A symbol beside its meaning, in a fixed 28px column so the text lines up down the list
@@ -68,101 +77,103 @@ function BadgeList({ items }: { items: { badge: React.ReactNode; text: React.Rea
 
 const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators, lastUpdated }) => {
   const numInService = totalElevators - numOutElevators;
+  const pctOut = totalElevators > 0 ? Math.round((numOutElevators / totalElevators) * 100) : 0;
   const pctAccessible = getADAPctByComplex();
   const updatedAt = lastUpdated?.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
   return (
     <article className="pb-2">
       <header className="px-4">
-        <h1 className="text-title">Legend</h1>
+        {/* Literal translation of the old MUI sx values — the logo is intentionally oversized
+            and shifted up/left, bleeding past this box's edges (no overflow-hidden/clip here,
+            same as the old version), with the title layered on top of it. */}
+        <div className="relative" style={{ width: 240, height: 110 }}>
+          <img
+            src="/transitaccesslogo.png"
+            alt=""
+            aria-hidden="true"
+            className="absolute object-contain object-left"
+            style={{ width: "100%", top: -65, left: -10 }}
+          />
+          <h1 className="absolute flex flex-col justify-center" style={{ top: 45, left: 60, fontWeight: 700, fontSize: 25, lineHeight: 1 }}>
+            <span className="ml-1" aria-hidden="true">
+              <AccessibleIconWhite />
+            </span>
+            Transit Access
+          </h1>
+        </div>
         <p className="mt-1 text-subhead text-muted-foreground">
-          Live elevator status for the NYC subway, and how to read it.
+          This map shows live elevator status in the NYC subway system. Tap on a station for more info!
         </p>
       </header>
 
-      <Section title="Live status">
+      <Section title="Live Summary">
         {/* aria-live so screen readers hear refreshed counts without being interrupted */}
-        <div className="grid grid-cols-2 gap-4" aria-live="polite" aria-atomic="true">
-          <div>
-            <div className="text-stat tabular-nums text-status-partial-foreground">
-              {lastUpdated ? numOutElevators : "–"}
-            </div>
-            <div className="mt-1.5 text-subhead text-muted-foreground">Out of service</div>
-          </div>
-          <div>
-            <div className="text-stat tabular-nums">
-              {lastUpdated ? numInService : "–"}
-            </div>
-            <div className="mt-1.5 text-subhead text-muted-foreground">In service</div>
-          </div>
+        <div aria-live="polite" aria-atomic="true">
+          <Prose>
+            {lastUpdated ? (
+              <>
+                There are <Stat>{numOutElevators}</Stat> elevators out of service at this time ({pctOut}% of
+                the system).
+              </>
+            ) : (
+              "Loading live status…"
+            )}
+          </Prose>
+          {lastUpdated && (
+            <Prose>
+              <Stat>{numInService}</Stat> elevators available for use.
+            </Prose>
+          )}
+          {updatedAt && <p className="text-footnote text-muted-foreground">Last updated: {updatedAt}</p>}
         </div>
-        <p className="text-footnote tabular-nums text-muted-foreground">
-          {lastUpdated ? `Across ${totalElevators} elevators. Last updated: ${updatedAt}.` : "Loading live status…"}
-        </p>
       </Section>
 
-      <Section title="Reading the map">
-        <Prose>Each accessible station shows how its elevators are doing right now.</Prose>
+      <Section title="Map Legend">
         <SymbolList
           items={[
             { symbol: <StationMarker access="ok" size={28} />, text: "All elevators in service." },
             { symbol: <StationMarker access="partial" size={28} />, text: "At least one elevator out of service." },
             { symbol: <StationMarker access="out" size={28} />, text: "All elevators out of service." },
-            { symbol: <StationMarker access="none" size={28} />, text: "Station has no step-free access." },
+            { symbol: <StationMarker access="none" size={28} />, text: "Station not ADA accessible." },
           ]}
         />
-        <Prose>Zoom in and each station becomes a white capsule, with its street elevators drawn where their entrances are.</Prose>
+      </Section>
+
+      <Section title="Station Legend">
         <SymbolList
           items={[
-            { symbol: <ElevatorMarker state="ok" size={28} />, text: "A street elevator that’s working." },
-            { symbol: <ElevatorMarker state="out" size={28} />, text: "A street elevator that’s out of service." },
-            { symbol: <ElevatorInvertedIcon size={28} />, text: "Platform elevator (not shown on map)." },
+            { symbol: <ElevatorMarker state="ok" size={28} />, text: "Street elevator (exact location shown on map)." },
+            { symbol: <ElevatorMarkerInverted state="ok" size={28} />, text: "Platform elevator" },
             { symbol: <Ramp size={28} />, text: "Ramp." },
-            {
-              symbol: <ElevatorPlannedBadge size={18} />,
-              text: `On an elevator’s corner: a long-term outage is coming up, more than ${longtermOutageThreshold} days.`,
-            },
           ]}
         />
       </Section>
 
-      <Section title="On a station’s page">
-        <Prose>
-          Elevators are grouped by where they start: at street level or inside the station. Tap one to see
-          its photo, where it goes, and any notes.
-        </Prose>
+      <Section title="Elevator Legend">
         <BadgeList
           items={[
-            { badge: <InServicePill />, text: "Working now. Ramps always show as in service." },
+            { badge: <InServicePill />, text: "Working now." },
             {
               badge: <OutOfServicePill />,
-              text: "Not working. When the MTA gives a return time, it shows beside this. If another elevator covers the same route, the row says so.",
+              text: "Not working. Return time estimated by MTA.",
             },
-            {
-              badge: <AccessTipBadge />,
-              text: "A note from the Transit Access community, like a steep ramp to avoid or which entrance is closest.",
-            },
-            {
-              badge: <OutagePlannedBadge />,
-              text: "The MTA has scheduled work on this elevator. Open it to see the dates.",
-            },
+            { badge: <RedundantBadge />, text: "If out of service, another path is possible." },
+            { badge: <AccessTipBadge />, text: "Access tip from the community." },
+            { badge: <OutagePlannedBadge />, text: "Future outage planned." },
             {
               badge: <MaintenanceBadge when="today" />,
-              text: "Maintenance starts soon: today, tonight, overnight or tomorrow. Expect the elevator to be out for part of that time.",
-            },
-            {
-              badge: <RedundantBadge />,
-              text: "If out of service, another path is possible.",
+              text: "Maintenance today or tomorrow.",
             },
           ]}
         />
       </Section>
 
-      <Section title="Getting around">
+      <Section title="General Accessibility Notes">
         <Prose>
           {pctAccessible < 75 ? "Only " : ""}
-          <span className="font-semibold tabular-nums">{pctAccessible}%</span> of stations in the MTA are
-          ADA accessible. Use Transit Access to check if your accessible station is in service.
+          <Stat>{pctAccessible}%</Stat> of stations in the MTA are ADA
+          accessible. Use Transit Access to check if your accessible station is in service.
         </Prose>
         <Prose>
           The MTA is taking elevators out of service for replacement for 8–12 months at a time. Use Transit
@@ -172,36 +183,64 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
           Mobility devices board in the middle of the platform. Look for the conductor and the blue Boarding
           Area sign.
         </Prose>
-        <figure className="flex flex-col gap-2">
-          <img
-            src="/boardingarea.png"
-            alt="A blue Boarding Area sign hanging from a subway platform ceiling"
-            className="w-full rounded-lg"
-          />
-          <figcaption className="text-footnote text-muted-foreground">
-            The Boarding Area sign marks where to wait.
-          </figcaption>
-        </figure>
+        <img
+          src="/boardingarea.png"
+          alt="A blue Boarding Area sign mounted on the ceiling of a subway platform, indicating where mobility device users should wait to board"
+          className="w-full rounded-lg"
+        />
       </Section>
 
-      <footer className="mx-4 mt-8 border-t border-border pt-4 text-footnote text-muted-foreground">
-        <p className="max-w-[65ch] text-pretty">
-          App data is pulled from the MTA’s real-time feed and{" "}
+      <Section title="About">
+        <Prose>
+          Version {pkg.version}
+          <br />© {new Date().getFullYear()} Transit Access LLC
+          <br />
+          Built by Joel Chapman &amp; Prachi Kulkarni
+        </Prose>
+
+        <a
+          href="https://www.buymeacoffee.com/transitaccess"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Buy Me A Coffee — support Transit Access (opens in new tab)"
+          className="w-fit"
+        >
+          <img
+            alt=""
+            src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
+            className="h-10 w-auto"
+          />
+        </a>
+
+        {/* Buy Me A Coffee keeps its logo button above; everything else is a plain link */}
+        <ul className="flex flex-col gap-1">
+          {COMMUNITY_LINKS.filter((link) => !link.href.includes("buymeacoffee")).map((link) => (
+            <li key={link.href}>
+              <a
+                href={link.href}
+                target={link.href.startsWith("mailto:") ? undefined : "_blank"}
+                rel="noreferrer"
+                className="text-body underline underline-offset-2 hover:text-foreground"
+              >
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+
+        <p className="max-w-[65ch] text-footnote text-pretty text-muted-foreground">
+          Disclaimer: App data pulled from MTA’s GTFS-realtime feed and{" "}
           <a href="https://data.ny.gov" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
             Open Data NY
           </a>
-          , so accuracy depends on what they report. If you suspect any inaccuracies, check{" "}
+          . Accuracy is highly dependent on the data provided. If you suspect any inaccuracies, check MTA’s
+          website for official notices at{" "}
           <a href="https://mta.info" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
             mta.info
-          </a>{" "}
-          for official notices.
+          </a>
+          .
         </p>
-        <p className="mt-3">
-          Version {pkg.version} · © {new Date().getFullYear()} Transit Access LLC
-          <br />
-          Built by Joel Chapman &amp; Prachi Kulkarni
-        </p>
-      </footer>
+      </Section>
     </article>
   );
 };

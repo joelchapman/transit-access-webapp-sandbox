@@ -7,7 +7,9 @@ import {
   AccessibleIconFalse,
   StationComplexDot,
   WarnIcon,
+  Ramp,
 } from "../icons";
+import { ElevatorMarker } from "@/components/ElevatorMarker/ElevatorMarker";
 import { StationPopupProps } from "@/utils/types";
 import { generateSubwayLines } from "@/utils/dataUtils";
 import { StatusIcon } from "@/components/StatusIcon/StatusIcon";
@@ -115,7 +117,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
 
     if (totalElevators > 0) {
       srParts.push(
-        `${totalElevators} ${totalElevators > 1 ? "elevators" : "elevator"} at station`,
+        `${totalElevators} ${totalElevators > 1 ? "elevators" : "elevator"}`,
       );
 
       visualParts.push(
@@ -124,7 +126,8 @@ const StationPopup: React.FC<StationPopupProps> = ({
           style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}
           aria-hidden="true"
         >
-          {totalElevators} {totalElevators > 1 ? "elevators" : "elevator"} at station
+          <ElevatorMarker state="ok" size={18} />
+          {totalElevators} {totalElevators > 1 ? "elevators" : "elevator"}
         </span>,
       );
     }
@@ -143,6 +146,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
           }}
           aria-hidden="true"
         >
+          <Ramp size={15} />
           {totalRamps} {totalRamps > 1 ? "ramps" : "ramp"}
         </span>,
       );
@@ -401,8 +405,6 @@ const StationPopup: React.FC<StationPopupProps> = ({
                   map={map}
                   stationView={stationView}
                   setStationView={setStationView}
-                  elevatorView={elevatorView}
-                  setElevatorView={setElevatorView}
                   activeFlyButton={activeFlyButton}
                   setActiveFlyButton={setActiveFlyButton}
                   userLocation={userLocation}
@@ -442,8 +444,6 @@ const StationPopup: React.FC<StationPopupProps> = ({
                   map={map}
                   stationView={stationView}
                   setStationView={setStationView}
-                  elevatorView={elevatorView}
-                  setElevatorView={setElevatorView}
                   activeFlyButton={activeFlyButton}
                   setActiveFlyButton={setActiveFlyButton}
                   userLocation={userLocation}

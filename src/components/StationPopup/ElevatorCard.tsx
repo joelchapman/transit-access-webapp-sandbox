@@ -3,16 +3,16 @@ import { MapPin, ArrowUpRight } from "lucide-react";
 
 import { InServicePill, OutOfServicePill, AccessTipBadge, OutagePlannedBadge, MaintenanceBadge, RedundantBadge } from "./StatusBadges";
 import { ROW_PRESS, EXPAND_EASE } from "@/lib/interaction";
-import { AccessTipNote, PlannedOutageNotes, ElevatorFooter, splitShortDescription } from "./ElevatorNotes";
+import { AccessTipNote, PlannedOutageNotes, ElevatorFooter } from "./ElevatorNotes";
 import { LineBullets } from "@/components/LineBullets/LineBullets";
 import {
-  lookAtElevator,
   highlightElevator,
   walkingDistanceMiles,
   WALKING_TOLERANCE_MILES,
 } from "@/utils/dataUtils";
 import { ElevatorPopupProps } from "@/utils/types";
 import { userIsInBounds } from "@/components/MtaMap/mtaMapOptions";
+import { longtermOutageThreshold } from "@/components/MtaMap/layers/UpcomingOutages/upcomingOutagesProps";
 import { cn } from "@/lib/utils";
 
 // One elevator: what it connects, whether it works, and the street photo that flies the map to it.
@@ -25,8 +25,6 @@ const ElevatorCard: React.FC<{
   map: mapboxgl.Map;
   stationView: string | null;
   setStationView: React.Dispatch<React.SetStateAction<string | null>>;
-  elevatorView: string | null;
-  setElevatorView: React.Dispatch<React.SetStateAction<string | null>>;
   activeFlyButton: string | null;
   setActiveFlyButton: React.Dispatch<React.SetStateAction<string | null>>;
   userLocation?: [number, number] | null;
@@ -37,8 +35,6 @@ const ElevatorCard: React.FC<{
 }> = ({
   elevator,
   map,
-  elevatorView,
-  setElevatorView,
   activeFlyButton,
   setActiveFlyButton,
   userLocation,
@@ -98,14 +94,18 @@ const ElevatorCard: React.FC<{
       ? elevator.isUpcomingOutage
       : [elevator.isUpcomingOutage]
     : [];
+  // Worst case wins if there's a mix: any long-term outage makes the badge red
+  const hasLongTermOutage = upcomingOutages.some((o) => o.outageDurationDays > longtermOutageThreshold);
 
-  // shortdescription ("Street to mezzanine") is what tells two elevators at one station apart
-  const fallbackTitle = isRamp
+  // shortdescription is unreliable (not curated for display) — generate the title instead
+  const titleText = isRamp
     ? "Ramp"
     : isStreet
       ? "Street elevator"
       : `Elevator to ${elevator.isBridge ? "overpass to " : ""}${elevator.isMezzTransferOnly ? "lower mezzanine to " : ""}${lines.split(" ").join("/")} trains`;
-  const { title: titleText, caveat } = splitShortDescription(elevator.shortdescription || fallbackTitle);
+  // shortdescription shown as a quiet always-visible note, ahead of the real access_note
+  // (which stays behind the AccessTipBadge/AccessTipNote, revealed on open)
+  const caveat = elevator.shortdescription;
 
   const walkingLink = (() => {
     if (!isStreet || !elevator.coordinates || !userLocation) return null;
@@ -118,7 +118,10 @@ const ElevatorCard: React.FC<{
   // Same pills as the station summary: quiet teal when it works, solid red when it doesn't
   const status = isOut && !isRamp ? (
     <>
-      <OutOfServicePill />
+      <span className="flex items-center gap-1">
+        <OutOfServicePill />
+        {toBool(elevator.isRedundant) && <RedundantBadge />}
+      </span>
       {eta && <span className="text-footnote text-status-out-foreground">Back {eta}</span>}
     </>
   ) : (
@@ -153,8 +156,21 @@ const ElevatorCard: React.FC<{
           <span className="flex min-w-0 flex-1 flex-col justify-between gap-1">
             <span className="flex flex-col gap-1">
               <span className="flex flex-wrap items-center gap-1.5 text-headline font-semibold text-pretty">
-                {titleText}
-                {!isRamp && lines && <LineBullets routes={lines.split(" ").filter(Boolean)} size="sm" />}
+                {isRamp ? (
+                  "Ramp"
+                ) : isStreet ? (
+                  <>
+                    Street elevator
+                    {lines && <LineBullets routes={lines.split(" ").filter(Boolean)} size="sm" />}
+                  </>
+                ) : (
+                  <>
+                    Elevator to {elevator.isBridge ? "overpass to " : ""}
+                    {elevator.isMezzTransferOnly ? "lower mezzanine to " : ""}
+                    {lines && <LineBullets routes={lines.split(" ").filter(Boolean)} size="sm" />}
+                    {" "}trains
+                  </>
+                )}
               </span>
               {caveat && <span className="text-footnote text-muted-foreground text-pretty">{caveat}</span>}
             </span>
@@ -172,12 +188,12 @@ const ElevatorCard: React.FC<{
                     maintenance badge already says that, so it replaces the generic outage badge */}
                 {upcomingOutages.length > 0 && !elevator.maintenanceLabel && (
                   <OutagePlannedBadge
+                    isLongTerm={hasLongTermOutage}
                     onClick={isOpen ? undefined : (e) => { e.stopPropagation(); onToggle(true); }}
                     aria-label={isOpen ? undefined : "Show planned outage"}
                   />
                 )}
                 {elevator.maintenanceLabel && <MaintenanceBadge when={elevator.maintenanceLabel} />}
-                {isOut && toBool(elevator.isRedundant) && <RedundantBadge />}
               </span>
 
               {elevator.ada === "0" && (
@@ -231,7 +247,7 @@ const ElevatorCard: React.FC<{
         >
           <div className="flex flex-col gap-3 px-4 pb-4">
           {elevator.access_note && <AccessTipNote note={elevator.access_note} />}
-          <PlannedOutageNotes outages={upcomingOutages} />
+          <PlannedOutageNotes outages={upcomingOutages} maintenanceLabel={elevator.maintenanceLabel} />
 
           {elevator.imageURL && (
             <div className="relative overflow-hidden rounded-lg bg-muted">
@@ -240,9 +256,15 @@ const ElevatorCard: React.FC<{
                 <button
                   ref={flyButtonRef}
                   type="button"
-                  onClick={() => {
-                    setActiveFlyButton(elevator.elevatorno);
-                    lookAtElevator(map, elevator.elevatorno, elevator.coordinates, elevatorView, setElevatorView);
+                  onClick={() => setActiveFlyButton(isActive ? null : elevator.elevatorno)}
+                  // Touch browsers fire synthetic mouseenter/mouseleave around a tap, which would
+                  // otherwise immediately undo the click toggle above — hover-capable pointers only
+                  onMouseEnter={() => {
+                    if (window.matchMedia("(hover: hover)").matches) setActiveFlyButton(elevator.elevatorno);
+                  }}
+                  onMouseLeave={() => {
+                    if (!window.matchMedia("(hover: hover)").matches) return;
+                    setActiveFlyButton((current) => (current === elevator.elevatorno ? null : current));
                   }}
                   aria-pressed={isActive}
                   className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 py-1.5 pl-2.5 pr-3 text-footnote font-semibold text-foreground shadow-[0_1px_2px_oklch(0_0_0/0.12),0_2px_8px_oklch(0_0_0/0.12)] transition-colors hover:bg-white active:bg-white/80"

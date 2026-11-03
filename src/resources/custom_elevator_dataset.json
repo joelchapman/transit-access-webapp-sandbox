@@ -2585,7 +2585,7 @@
         "ada": "1",
         "isBroken": "",
         "directionLabel": "",
-        "shortdescription": "Street to PATH & subways. Leads to mezzanine via non-ADA ramp. It's a little steep.",
+        "shortdescription": "Street to PATH & subways",
         "description_custom": "This elevator gets you from the street to PATH trains, and to B/D/F/M & N/Q/R/W trains via a ramp",
         "access_note": "Closest to PATH trains. Leads to subway via non-ADA ramp, which is a little steep. To access the subway and avoid this ramp, use the other street elevator"
       },
@@ -5527,7 +5527,7 @@
         "linesServed": "L",
         "directionLabel": "Brooklyn-bound",
         "title": "1 Av",
-        "image": "https://wheresthedamnelevator.com/assets/images/newyork/mta/1Av_EL292.jpg",
+        "image": "https://wheresthedamnelevator.com/assets/images/newyork/mta/1Av_EL293.jpg",
         "alternativeRoute": "If you are on the street: Take a westbound M14A SBS or M14D SBS (E 14 St and 1 Av) to 4 Av for Union Sq-14 St station. Then use elevators for Canarsie-bound L service. If you are on the platform: Take a Canarsie-bound L to Bedford Av. Then transfer across the platform to an 8 Av-bound L to 1 Av.",
         "ada": "1",
         "isBroken": "",

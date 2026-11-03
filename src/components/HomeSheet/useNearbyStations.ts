@@ -62,6 +62,7 @@ export interface NearbyStation {
   outElevators: any[];
   walkingMiles: number;
   walkMinutes: number | null;
+  isPinDistance: boolean;
   maintenanceLabel: string | null;
   feature: any;
 }
@@ -82,6 +83,7 @@ export function useNearbyStations({
   upcomingElevatorData,
 }: Options) {
   const [radius, setRadius] = useState<number | null>(1);
+  const [distanceSource, setDistanceSource] = useState<"gps" | "override">("gps");
   const [fallbackLocation, setFallbackLocation] = useState<LngLat | null>(null);
 
   // "Any" distance with no Mapbox geolocate fix (e.g. user outside NYC): ask directly
@@ -95,6 +97,9 @@ export function useNearbyStations({
   const origin = overrideLocation ?? userLocation ?? (radius === null ? fallbackLocation : null);
   const userInBounds = userLocation !== null && userIsInBounds(userLocation[0], userLocation[1]);
   const isUsingPin = !!overrideLocation;
+  // Toggle only makes sense when there's a real choice between the two
+  const canToggleDistance = !!overrideLocation && !!userLocation;
+  const usingPinDistance = canToggleDistance ? distanceSource === "override" : !userLocation;
 
   const complexes = useMemo(() => {
     if (!origin) return [];
@@ -127,8 +132,12 @@ export function useNearbyStations({
             (out) => out.elevatorNo?.toLowerCase() === el.properties.elevatorno?.toLowerCase(),
           ),
         );
-        // Distances shown are always from the real GPS fix, even when the list follows the map pin
-        const miles = userLocation ? distanceToEntrance(complex, userLocation) : complex.distance;
+        // GPS by default; falls back to (or is toggled to) the map-pin distance
+        const miles = usingPinDistance
+          ? complex.distance
+          : userLocation
+            ? distanceToEntrance(complex, userLocation)
+            : complex.distance;
         const walkingMiles = miles * WALKING_DISTANCE_FACTOR;
         const withinRadius = radius !== null && miles <= radius / WALKING_DISTANCE_FACTOR;
 
@@ -141,7 +150,8 @@ export function useNearbyStations({
           outCount: outElevators.length,
           outElevators,
           walkingMiles,
-          walkMinutes: userInBounds && !isUsingPin && withinRadius ? Math.max(1, Math.round(walkingMiles * 20)) : null,
+          walkMinutes: userInBounds && !usingPinDistance && withinRadius ? Math.max(1, Math.round(walkingMiles * 20)) : null,
+          isPinDistance: usingPinDistance,
           maintenanceLabel: getComplexMaintenanceToday(complexId, upcomingElevatorData),
           feature: {
             geometry: complex.geometry,
@@ -153,7 +163,7 @@ export function useNearbyStations({
           },
         };
       }),
-    [complexes, outageByComplex, elevatorData, userLocation, userInBounds, isUsingPin, radius, upcomingElevatorData],
+    [complexes, outageByComplex, elevatorData, userLocation, userInBounds, usingPinDistance, radius, upcomingElevatorData],
   );
 
   return {
@@ -163,5 +173,8 @@ export function useNearbyStations({
     hasLocation: origin !== null,
     isUsingPin,
     showDistances: userInBounds || isUsingPin,
+    canToggleDistance,
+    distanceSource,
+    toggleDistanceSource: () => setDistanceSource((s) => (s === "gps" ? "override" : "gps")),
   };
 }
