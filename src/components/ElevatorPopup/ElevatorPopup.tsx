@@ -3,10 +3,9 @@ import { Wrench } from "lucide-react";
 import styles from "./elevator-popup.module.css";
 import { ElevatorPopupProps } from "@/utils/types";
 import {
+  ElevatorStatusMark,
   InServicePill,
   OutOfServicePill,
-  AccessTipBadge,
-  OutagePlannedBadge,
   MaintenanceBadge,
 } from "@/components/StationPopup/StatusBadges";
 import {
@@ -15,7 +14,6 @@ import {
   ElevatorFooter,
 } from "@/components/StationPopup/ElevatorNotes";
 import { LineBullets } from "@/components/LineBullets/LineBullets";
-import { longtermOutageThreshold } from "@/components/MtaMap/layers/UpcomingOutages/upcomingOutagesProps";
 
 // Opens when an elevator is tapped on the map: the same elevator as a station-list row, opened,
 // so it uses the row's title rule, pills, badges and detail blocks.
@@ -41,12 +39,11 @@ const ElevatorPopup: React.FC<ElevatorPopupProps> = ({
   const isRamp = elevatorno.toLowerCase().includes("ra");
   const out = toBool(isOut) && !isRamp;
   const upcoming = isUpcomingOutage ?? [];
-  const hasLongTermOutage = upcoming.some((o) => o.outageDurationDays > longtermOutageThreshold);
   const eta = estimatedreturntoservice?.replace(/^(Today|Tomorrow)\b/, (w) => w.toLowerCase());
   // shortdescription is unreliable (not curated for display) — generate the title instead
   const title = isRamp ? "Ramp" : toBool(isStreet) ? "Street elevator" : "Platform elevator";
   // shortdescription shown as a quiet always-visible note, ahead of the real access_note
-  // (which stays behind the AccessTipBadge/AccessTipNote, revealed below)
+  // (which AccessTipNote shows below)
   const caveat = shortdescription;
 
   return (
@@ -59,15 +56,26 @@ const ElevatorPopup: React.FC<ElevatorPopupProps> = ({
         </h1>
         {caveat && <p className="text-footnote text-muted-foreground text-pretty">{caveat}</p>}
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-          {out ? <OutOfServicePill /> : <InServicePill label={isRamp ? "Always in service" : "In service"} />}
+          {/* With a photo, status is a mark on the photo. Screen readers get the words either way */}
+          {imageURL ? (
+            <span className="sr-only">{out ? "Out of service" : isRamp ? "Always in service" : "In service"}</span>
+          ) : out ? (
+            <OutOfServicePill />
+          ) : (
+            <InServicePill label={isRamp ? "Always in service" : "In service"} />
+          )}
           {out && eta && <span className="text-footnote text-status-out-foreground">Back {eta}</span>}
-          {access_note && <AccessTipBadge />}
-          {upcoming.length > 0 && !maintenanceLabel && <OutagePlannedBadge isLongTerm={hasLongTermOutage} />}
-          {maintenanceLabel && <MaintenanceBadge when={maintenanceLabel} />}
+          {/* The outage notes below already give the timing */}
+          {maintenanceLabel && upcoming.length === 0 && <MaintenanceBadge when={maintenanceLabel} />}
         </div>
       </header>
 
-      {imageURL && <img src={imageURL} alt="" className="aspect-[4/3] w-full rounded-lg object-cover" />}
+      {imageURL && (
+        <div className="relative">
+          <img src={imageURL} alt="" className="aspect-[4/3] w-full rounded-[8px] object-cover" />
+          <ElevatorStatusMark isOut={out} className="right-3 top-3" />
+        </div>
+      )}
       {access_note && <AccessTipNote note={access_note} />}
       <PlannedOutageNotes outages={upcoming} maintenanceLabel={maintenanceLabel} />
       {description_custom && <p className="text-subhead text-pretty">{description_custom}</p>}

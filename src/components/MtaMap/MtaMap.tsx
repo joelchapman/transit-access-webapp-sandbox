@@ -53,7 +53,7 @@ import {
 import { MtaStationData, MtaStationFeature } from "@/utils/types";
 import { LocationPin } from "../icons";
 import { AlertData } from "@/types/alerts";
-import HomeSheet from "../HomeSheet/HomeSheet";
+import HomeSheet, { STATIONS_PANEL_ID } from "../HomeSheet/HomeSheet";
 import AlertBanner from "../AlertBanner/AlertBanner";
 import { initializeStore } from "@/lib/dataStore";
 import { applyZIndexVars } from "@/styles/zIndex";
@@ -74,6 +74,9 @@ const DESKTOP_POPUPSHIFT_TOP = -30; // map shift top on desktop (px)
 // the layer doesn't render, so the toggle shouldn't either
 const BUILDING_EXTRUSION_MIN_ZOOM = 15;
 // ─────────────────────────────────────────────────────────────────────────────
+
+const SKIP_LINK =
+  "sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[1000] focus:inline-flex focus:min-h-11 focus:items-center focus:rounded-full focus:bg-foreground focus:px-4 focus:text-subhead focus:font-semibold focus:text-background";
 
 const MtaMap = () => {
   const mapRef = useRef(null);
@@ -864,6 +867,45 @@ const MtaMap = () => {
 
   return (
     <>
+      {/* Tab order follows this DOM order: skip links, alerts, stations, then the map and its controls.
+          On mobile the sheet is portaled to the end of the page, which is why "Skip to stations" matters. */}
+      <a href={`#${STATIONS_PANEL_ID}`} className={SKIP_LINK}>
+        Skip to stations
+      </a>
+      <a
+        href="#map-container"
+        className={SKIP_LINK}
+        onClick={(e) => {
+          e.preventDefault();
+          mapRef.current?.getCanvas().focus();
+        }}
+      >
+        Skip to map
+      </a>
+
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-[996] mx-auto flex max-w-lg md:left-[412px] flex-col gap-2 px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <AlertBanner alerts={systemAlerts ?? []} />
+      </div>
+
+      <HomeSheet
+        open
+        page={sheetPage}
+        onBack={closeStation}
+        userLocation={userLocation}
+        overrideLocation={mapCenterLocation}
+        locateSignal={locateSignal}
+        zoomOutSignal={zoomOutSignal}
+        isMapManipulated={isMapManipulated}
+        elevatorData={elevatorDataState}
+        upcomingElevatorData={upcomingRawData}
+        numOutElevators={elevatorStats.numOutElevators}
+        totalElevators={elevatorStats.totalElevators}
+        lastUpdated={lastUpdated}
+        stationData={stationData}
+        stationOutages={stationDataState}
+        onSelectStation={selectStation}
+      />
+
       <div ref={mapContainer} id="map-container" className="map-container" />
 
       {showCenterPin && !stationPopupOpen && !pinSuppressed && (
@@ -874,10 +916,6 @@ const MtaMap = () => {
           <LocationPin size="1.5rem"/>
         </div>
       )}
-
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-[996] mx-auto flex max-w-lg md:left-[412px] flex-col gap-2 px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <AlertBanner alerts={systemAlerts ?? []} />
-      </div>
 
       <div className="map-zoom-out">
         <button
@@ -996,25 +1034,6 @@ const MtaMap = () => {
           {isZoomedOut ? <Minimize2 className="size-5" /> : <Maximize2 className="size-5" />}
         </button>
       </div>
-
-      <HomeSheet
-        open
-        page={sheetPage}
-        onBack={closeStation}
-        userLocation={userLocation}
-        overrideLocation={mapCenterLocation}
-        locateSignal={locateSignal}
-        zoomOutSignal={zoomOutSignal}
-        isMapManipulated={isMapManipulated}
-        elevatorData={elevatorDataState}
-        upcomingElevatorData={upcomingRawData}
-        numOutElevators={elevatorStats.numOutElevators}
-        totalElevators={elevatorStats.totalElevators}
-        lastUpdated={lastUpdated}
-        stationData={stationData}
-        stationOutages={stationDataState}
-        onSelectStation={selectStation}
-      />
 
       <>
         {/* show3DToggle tracks pitch !== 0 || buildings3DOn (see the "pitch" listener above

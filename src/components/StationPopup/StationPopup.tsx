@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import ElevatorCard from "./ElevatorCard";
-import { StatusPill, StatusTone } from "./StatusBadges";
+import { StatusPill } from "./StatusBadges";
 import styles from "@/components/StationPopup/station-popup.module.css";
 import {
   AccessibleIconWhite,
@@ -10,6 +10,7 @@ import {
   Ramp,
 } from "../icons";
 import { ElevatorMarker } from "@/components/ElevatorMarker/ElevatorMarker";
+import { StationMarker } from "@/components/StationMarker/StationMarker";
 import { StationPopupProps } from "@/utils/types";
 import { generateSubwayLines } from "@/utils/dataUtils";
 import { StatusIcon } from "@/components/StatusIcon/StatusIcon";
@@ -70,12 +71,6 @@ const StationPopup: React.FC<StationPopupProps> = ({
 
   const isAccessible = ada !== "0";
 
-  const AccessibleIconComponent = (fill?: string, size?: number) => {
-    const Icon = isAccessible ? AccessibleIconWhite : AccessibleIconFalse;
-
-    return <Icon fill={fill} size={size} aria-hidden="true" />;
-  };
-
   const oosCount = elevators.filter(
     (e) =>
       e.estimatedreturntoservice !== "null" &&
@@ -97,12 +92,14 @@ const StationPopup: React.FC<StationPopupProps> = ({
     return `${oosCount} of ${totalElevators} elevators are out of service`;
   };
 
-  const elevatorStatus: { tone: StatusTone; label: string } =
-    oosCount === 0
-      ? { tone: "ok", label: "All elevators in service" }
-      : oosCount === totalElevators
-        ? { tone: "out", label: "All elevators out of service" }
-        : { tone: "partial", label: `${oosCount} of ${totalElevators} elevators out` };
+  // Working is the default, so the summary only counts elevators when none are out; otherwise it
+  // counts the ones that are
+  const outageLabel =
+    oosCount < totalElevators
+      ? `${oosCount} of ${totalElevators} elevators out`
+      : totalElevators === 1
+        ? "1 elevator out"
+        : `All ${totalElevators} elevators out`;
 
   const getSubwayLinesText = (lines: string) => {
     return lines.split(" ").filter(Boolean).join(", ");
@@ -197,8 +194,6 @@ const StationPopup: React.FC<StationPopupProps> = ({
     });
   };
 
-  const adaColor = ada === "0" ? "#c80000" : "#055765";
-
   useEffect(() => {
     // Focus the title when a new station is selected
     if (complexName && titleRef.current) {
@@ -247,7 +242,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
           styles.popupHeader,
           "border-b transition-[border-color,box-shadow] duration-150 motion-reduce:transition-none",
           isScrolled
-            ? "border-border shadow-[0_6px_12px_-8px_oklch(0_0_0/0.18)]"
+            ? "border-border shadow-scrolled"
             : "border-transparent",
         )}
       >
@@ -262,16 +257,17 @@ const StationPopup: React.FC<StationPopupProps> = ({
           {/* Station title text */}
           <span className="min-w-0 text-balance">{complexName}</span>
 
-          {/* Accessibility icon */}
-          <span
-            className={cn(
-              "grid shrink-0 place-items-center rounded-lg p-1",
-              isAccessible ? "bg-status-ok-muted" : "bg-status-out-muted",
-            )}
-            aria-hidden="true"
-          >
-            {AccessibleIconComponent(adaColor, 20)}
-          </span>
+          {/* The station's marker from the map, so its status reads the same in both places.
+              Stations with no step-free access keep this icon: their map marker is just a small dot */}
+          {isAccessible ? (
+            <span className="shrink-0" aria-hidden="true">
+              <StationMarker access={oosCount === 0 ? "ok" : oosCount === totalElevators ? "out" : "partial"} />
+            </span>
+          ) : (
+            <span className="grid shrink-0 place-items-center rounded-lg bg-status-out-muted p-1" aria-hidden="true">
+              <AccessibleIconFalse fill="oklch(var(--status-out))" size={20} aria-hidden="true" />
+            </span>
+          )}
           <span className="sr-only">
             {isAccessible
               ? "station is accessible"
@@ -313,7 +309,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
                       <span className="sr-only">A.D.A.</span>
                       accessible
                     </span>
-                    <AccessibleIconFalse size={15} fill="#111111" />
+                    <AccessibleIconFalse size={15} fill="oklch(var(--foreground))" />
                   </div>
                 </>
               ) : (
@@ -360,14 +356,16 @@ const StationPopup: React.FC<StationPopupProps> = ({
               Not ADA accessible
             </StatusPill>
           )}
-          {totalElevators > 0 && (
-            <StatusPill tone={elevatorStatus.tone} size="summary">
-              {elevatorStatus.label}
+          {oosCount > 0 && (
+            <StatusPill tone={oosCount === totalElevators ? "out" : "partial"} size="summary">
+              {outageLabel}
             </StatusPill>
           )}
-          <StatusPill tone="neutral" size="summary">
-            {buildEquipmentText(totalElevators, totalRamps)}
-          </StatusPill>
+          {(oosCount === 0 || totalRamps > 0) && (
+            <StatusPill tone="neutral" size="summary">
+              {buildEquipmentText(oosCount === 0 ? totalElevators : 0, totalRamps)}
+            </StatusPill>
+          )}
         </section>
 
         <section

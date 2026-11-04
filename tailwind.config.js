@@ -31,7 +31,13 @@ module.exports = {
   			caption: ['0.75rem', { lineHeight: '1.3' }]
   		},
   		boxShadow: {
-  			raised: 'var(--shadow-raised)'
+  			raised: 'var(--shadow-raised)',
+  			floating: 'var(--shadow-floating)',
+  			sheet: 'var(--shadow-sheet)',
+  			overlay: 'var(--shadow-overlay)',
+  			'on-photo': 'var(--shadow-on-photo)',
+  			badge: 'var(--shadow-badge)',
+  			scrolled: 'var(--shadow-scrolled)'
   		},
   		borderRadius: {
   			sheet: 'var(--radius-sheet)',
@@ -50,8 +56,19 @@ module.exports = {
   				'partial-muted': 'oklch(var(--status-partial-muted) / <alpha-value>)',
   				out: 'oklch(var(--status-out) / <alpha-value>)',
   				'out-foreground': 'oklch(var(--status-out-foreground) / <alpha-value>)',
-  				'out-muted': 'oklch(var(--status-out-muted) / <alpha-value>)'
+  				'out-muted': 'oklch(var(--status-out-muted) / <alpha-value>)',
+  				'out-on': 'oklch(var(--status-out-on) / <alpha-value>)'
   			},
+  			'access-tip': {
+  				DEFAULT: 'oklch(var(--access-tip) / <alpha-value>)',
+  				foreground: 'oklch(var(--access-tip-foreground) / <alpha-value>)'
+  			},
+  			// Tints of the text color, so they read on any surface: quiet fills and hover/press feedback
+  			'fill-subtle': 'oklch(var(--foreground) / 0.06)',
+  			'state-hover': 'oklch(var(--foreground) / 0.04)',
+  			'state-press': 'oklch(var(--foreground) / 0.08)',
+  			'state-press-strong': 'oklch(var(--foreground) / 0.12)',
+  			handle: 'oklch(var(--foreground) / 0.2)',
   			background: 'oklch(var(--background) / <alpha-value>)',
   			foreground: 'oklch(var(--foreground) / <alpha-value>)',
   			card: {

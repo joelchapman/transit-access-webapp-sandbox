@@ -1,4 +1,5 @@
 import mapboxgl from "mapbox-gl";
+import { mapColors } from "@/styles/mapColors";
 
 // Line bullets on the tracks, placed the way Apple Maps does it: a group like A·C·E runs along the
 // line one bullet after another, but every bullet stays upright. Mapbox's own line labels can only do
@@ -39,13 +40,13 @@ function drawBullet(route: string, ratio: number) {
   const c = size / 2;
   ctx.beginPath();
   ctx.arc(c, c, c, 0, Math.PI * 2);
-  ctx.fillStyle = "#FFFFFF";
+  ctx.fillStyle = mapColors.surface;
   ctx.fill();
   ctx.beginPath();
   ctx.arc(c, c, BULLET / 2, 0, Math.PI * 2);
   ctx.fillStyle = COLORS[route];
   ctx.fill();
-  ctx.fillStyle = DARK_TEXT.has(route) ? "#111111" : "#FFFFFF";
+  ctx.fillStyle = DARK_TEXT.has(route) ? mapColors.ink : mapColors.surface;
   ctx.font = `700 ${route.length > 1 ? 5 : 8.5}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";

@@ -2,6 +2,7 @@
 // import runs into ts type problems when they're the same (unconfirmed but suspected)
 
 import { elevatorView } from "../CurrentOutages/currentOutagesProps";
+import { mapColors } from "@/styles/mapColors";
 
 export const stationComplexProps = {
   id: "mta-subway-complexes-accessible2",
@@ -30,7 +31,7 @@ export const stationComplexProps = {
         "text-field": ["to-string", ["get", "stop_name"]]
       },
       "paint": {
-        "text-halo-color": "#ffffff",
+        "text-halo-color": mapColors.surface,
         "text-halo-width": 2,
         "text-halo-blur": 1,
         "text-translate": [

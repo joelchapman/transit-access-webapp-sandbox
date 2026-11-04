@@ -1,5 +1,5 @@
 import React from "react";
-import { Wrench, Star } from "lucide-react";
+import { Wrench } from "lucide-react";
 import { AccessibleIconWhite } from "../icons";
 import { StatusIcon } from "@/components/StatusIcon/StatusIcon";
 import { cn } from "@/lib/utils";
@@ -15,11 +15,11 @@ const TONES: Record<StatusTone, { surface: string; icon?: string; glyph?: "check
   partial: { surface: "bg-status-partial-muted text-status-partial-foreground", icon: "text-status-partial", glyph: "alert" },
   // Fully out is the one state drawn solid, wherever it appears
   out: {
-    surface: "bg-status-out text-white",
-    icon: "text-white [--status-icon-glyph:oklch(var(--status-out))]",
+    surface: "bg-status-out text-status-out-on",
+    icon: "text-status-out-on [--status-icon-glyph:oklch(var(--status-out))]",
     glyph: "alert",
   },
-  neutral: { surface: "bg-foreground/[0.06] text-foreground" },
+  neutral: { surface: "bg-fill-subtle text-foreground" },
 };
 
 const SIZES: Record<PillSize, { pill: string; icon: string }> = {
@@ -57,12 +57,18 @@ export const InServicePill = ({ label = "In service" }: { label?: string }) => (
   <StatusPill tone="ok">{label}</StatusPill>
 );
 
-export const OutOfServicePill = () => <StatusPill tone="out">Out of service</StatusPill>;
-
-// Same glyph as the pill's icon, standalone — for places that need the mark without the label
-export const OutOfServiceIcon = ({ className }: { className?: string }) => (
-  <StatusIcon glyph="alert" className={cn("text-status-out", className)} />
+// An elevator's status, as just a mark in the corner of its photo. Decorative: pair it with
+// screen-reader text. The white backing keeps the color readable over any photo.
+export const ElevatorStatusMark = ({ isOut, className }: { isOut: boolean; className?: string }) => (
+  <span
+    aria-hidden="true"
+    className={cn("absolute grid size-6 place-items-center rounded-full bg-background shadow-badge", className)}
+  >
+    <StatusIcon glyph={isOut ? "alert" : "check"} className={cn("size-5", isOut ? "text-status-out" : "text-status-ok")} />
+  </span>
 );
+
+export const OutOfServicePill = () => <StatusPill tone="out">Out of service</StatusPill>;
 
 // Extra information about an elevator: outlined, so it never competes with the status pill.
 // Pass onClick to make it a real button (e.g. a badge that opens the card to reveal its note).
@@ -100,7 +106,7 @@ function Badge({
 }
 
 export const AccessTipBadge = ({ onClick, "aria-label": ariaLabel }: { onClick?: (e: React.MouseEvent) => void; "aria-label"?: string }) => (
-  <Badge icon={<AccessibleIconWhite size={12} fill="#6b2177" />} onClick={onClick} aria-label={ariaLabel}>
+  <Badge icon={<AccessibleIconWhite size={12} fill="oklch(var(--access-tip-foreground))" />} onClick={onClick} aria-label={ariaLabel}>
     Access tip
   </Badge>
 );
@@ -124,15 +130,26 @@ export const OutagePlannedBadge = ({
   </Badge>
 );
 
-export const MaintenanceBadge = ({ when }: { when: string }) => (
-  <Badge icon={<Wrench className="size-3 text-status-out" strokeWidth={2.5} aria-hidden="true" />}>
+export const MaintenanceBadge = ({
+  when,
+  onClick,
+  "aria-label": ariaLabel,
+}: {
+  when: string;
+  onClick?: (e: React.MouseEvent) => void;
+  "aria-label"?: string;
+}) => (
+  <Badge
+    icon={<Wrench className="size-3 text-status-out" strokeWidth={2.5} aria-hidden="true" />}
+    onClick={onClick}
+    aria-label={ariaLabel}
+  >
     Maintenance {when}
   </Badge>
 );
 
 export const RedundantBadge = () => (
-  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-status-ok-muted py-px pl-1.5 pr-2 text-caption font-semibold text-status-ok-foreground">
-    <Star className="size-3" strokeWidth={2.5} aria-hidden="true" />
-    Redundant
+  <span className="inline-flex shrink-0 items-center rounded-full bg-status-ok-muted px-2 py-px text-caption font-semibold text-status-ok-foreground">
+    Another path available
   </span>
 );

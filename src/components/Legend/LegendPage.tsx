@@ -5,8 +5,7 @@ import { Ramp, AccessibleIconWhite } from "../icons";
 import {
   AccessTipBadge,
   OutagePlannedBadge,
-  InServicePill,
-  OutOfServicePill,
+  ElevatorStatusMark,
   MaintenanceBadge,
   RedundantBadge,
 } from "@/components/StationPopup/StatusBadges";
@@ -153,9 +152,22 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
       <Section title="Elevator Legend">
         <BadgeList
           items={[
-            { badge: <InServicePill />, text: "Working now." },
             {
-              badge: <OutOfServicePill />,
+              badge: (
+                <>
+                  <span className="sr-only">In service</span>
+                  <ElevatorStatusMark isOut={false} className="relative" />
+                </>
+              ),
+              text: "Working now.",
+            },
+            {
+              badge: (
+                <>
+                  <span className="sr-only">Out of service</span>
+                  <ElevatorStatusMark isOut className="relative" />
+                </>
+              ),
               text: "Not working. Return time estimated by MTA.",
             },
             { badge: <RedundantBadge />, text: "If out of service, another path is possible." },

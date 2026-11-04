@@ -51,7 +51,7 @@ const AlertBanner: React.FC<{ alerts: AlertData[] }> = ({ alerts }) => {
             key={alert.text}
             role="status"
             className={cn(
-              "pointer-events-auto flex items-start gap-3 rounded-xl py-3 pl-4 pr-1 shadow-[0_1px_2px_oklch(0_0_0/0.08),0_4px_12px_oklch(0_0_0/0.1)]",
+              "pointer-events-auto flex items-start gap-3 rounded-xl py-3 pl-4 pr-1 shadow-overlay",
               tone.surface,
             )}
           >
@@ -61,7 +61,7 @@ const AlertBanner: React.FC<{ alerts: AlertData[] }> = ({ alerts }) => {
               type="button"
               onClick={() => dismiss(alert.text)}
               aria-label="Dismiss alert"
-              className={cn("-my-2.5 grid size-11 shrink-0 place-items-center rounded-full text-foreground/60", BUTTON_PRESS)}
+              className={cn("-my-2.5 grid size-11 shrink-0 place-items-center rounded-full text-muted-foreground", BUTTON_PRESS)}
             >
               <X className="size-4" />
             </button>

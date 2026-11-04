@@ -24,8 +24,8 @@
   --desktop-shift-left: 100px;
   --desktop-shift-top: -30px;
 
-  /* Active/selected color for map control buttons */
-  --button-select-color: #1991bd;
+  /* Active state of map control buttons */
+  --control-active: #1991bd;
   /* Color for the map-center pin and inline distance-source pin */
   --map-pin-color: #fb2828b7;
 
@@ -105,9 +105,9 @@ div#__next > div {
 @media (min-width: 768px) {
   .onclick-popup.mapboxgl-popup.mapboxgl-popup-anchor-bottom {
     padding: 5px 5px 5px 5px;
-    background-color: #edededb3;
+    background-color: oklch(var(--gray-200) / 0.7);
     backdrop-filter: blur(3px);
-    box-shadow: -4px 0px 12px rgba(0, 0, 0, 0.7);
+    box-shadow: -4px 0px 12px oklch(var(--shadow-color) / 0.7);
     border-radius: 0rem 0.8rem 0.8rem 0rem;
     left: 0% !important;
     bottom: auto !important;
@@ -186,7 +186,7 @@ div#__next > div {
 
 .onhover-popup .mapboxgl-popup-close-button {
   position: absolute !important;
-  color: #590606;
+  color: oklch(var(--status-out-foreground));
   left: 95% !important;
   transform: translateX(-50%);
   top: -5px !important;
@@ -222,23 +222,23 @@ div#__next > div {
 .onclick-popup strong {
   display: flex;
   margin-bottom: 1% !important;
-  color: #111;
+  color: oklch(var(--foreground));
   font-size: 18px;
 }
 
 /* Additional hover effects */
 .onhover-popup .mapboxgl-popup-content {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 12px 40px oklch(var(--shadow-color) / 0.3);
   text-align: center;
   padding: 0;
   border-radius: 0.4rem;
-  background-color: #f6dcda;
+  background-color: oklch(var(--status-out-muted));
 }
 
 .last-updated {
     font-family: -apple-system, BlinkMacSystemFont, Helvetica Neue, Helvetica, Arial, sans-serif;
     font-size: 0.6rem;
-    color: #707070;
+    color: oklch(var(--muted-foreground));
     position: fixed;
     left: 6px;
     right: 0;
@@ -308,7 +308,7 @@ div#__next > div {
   z-index: -1;
   border-radius: 9999px;
   background: oklch(var(--background));
-  box-shadow: var(--shadow-raised), 0 2px 8px oklch(0 0 0 / 0.1);
+  box-shadow: var(--shadow-raised), 0 2px 8px oklch(var(--shadow-color) / 0.1);
   transition: background-color 0.15s ease;
 }
 
@@ -325,7 +325,7 @@ div#__next > div {
 }
 
 .map-zoom-out-btn--active {
-  color: var(--button-select-color);
+  color: var(--control-active);
 }
 
 /* The 3D toggle is both a stack slot and a button: keep the slot's fixed position */
@@ -351,11 +351,11 @@ div#__next > div {
 .mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate.mapboxgl-ctrl-geolocate-active,
 .mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate.mapboxgl-ctrl-geolocate-waiting {
   --map-ctrl-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='2' x2='5' y1='12' y2='12'/%3E%3Cline x1='19' x2='22' y1='12' y2='12'/%3E%3Cline x1='12' x2='12' y1='2' y2='5'/%3E%3Cline x1='12' x2='12' y1='19' y2='22'/%3E%3Ccircle cx='12' cy='12' r='7'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
-  color: var(--button-select-color);
+  color: var(--control-active);
 }
 
 .mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate.mapboxgl-ctrl-geolocate-background {
-  color: var(--button-select-color);
+  color: var(--control-active);
 }
 
 .mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate:disabled,
@@ -370,7 +370,7 @@ div#__next > div {
 }
 
 [data-bearing-manhattan="true"] .mapboxgl-ctrl-group button.mapboxgl-ctrl-compass {
-  color: var(--button-select-color);
+  color: var(--control-active);
 }
 
 /* Manhattan label, under the arrow. Always present so its color can transition. */
@@ -469,32 +469,103 @@ div#__next > div {
   white-space: normal;
 }
 
+/* Mapbox's translucent backing lets the map through behind the text */
+.mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib.mapboxgl-compact-show {
+  background-color: oklch(var(--background));
+}
+
+.mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib.mapboxgl-compact-show a {
+  color: oklch(var(--foreground));
+}
+
+/* Mapbox's own focus style is a faint blue glow; use the app's ring. The map fills the screen, so its
+   ring goes inside the edge or it would never show. */
+.mapboxgl-ctrl button:focus-visible {
+  outline: 2px solid oklch(var(--ring)) !important;
+  outline-offset: 2px;
+  box-shadow: none !important;
+}
+
+.mapboxgl-canvas-container canvas.mapboxgl-canvas:focus-visible {
+  outline-offset: -4px;
+}
+
+/* 44px tap areas around the small attribution controls, without changing how they look */
+.mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib-button,
+.mapboxgl-ctrl-bottom-left a.mapboxgl-ctrl-logo {
+  position: relative;
+}
+
+.mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib-button::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+}
+
+.mapboxgl-ctrl-bottom-left a.mapboxgl-ctrl-logo::after {
+  content: "";
+  position: absolute;
+  inset: -10px 0;
+}
+
 @layer base {
   /* Colors are OKLCH channels ("L C H"), consumed as oklch(var(--x) / alpha) */
   :root {
-    --background: 1 0 0;
-    --foreground: 0.2 0.006 265;
-    --card: 1 0 0;
-    --card-foreground: 0.2 0.006 265;
-    --popover: 1 0 0;
-    --popover-foreground: 0.2 0.006 265;
-    --primary: 0.2 0.006 265;
-    --primary-foreground: 0.985 0 0;
+    /* Gray ramp: one cool hue (255), with a little more chroma through the mid tones. Components
+       never use these directly; they use the semantic tokens below, which is what dark mode remaps.
+       Map markers and Mapbox layers can't read CSS variables: src/styles/mapColors.ts mirrors these. */
+    --gray-0: 1 0 0;
+    --gray-50: 0.985 0.004 255;
+    --gray-100: 0.968 0.007 255;
+    --gray-200: 0.945 0.01 255;
+    --gray-300: 0.91 0.012 255;
+    --gray-400: 0.82 0.016 255;
+    --gray-500: 0.62 0.02 255;
+    --gray-600: 0.56 0.022 255;
+    --gray-700: 0.415 0.024 255;
+    --gray-800: 0.38 0.024 255;
+    --gray-850: 0.3 0.024 255;
+    --gray-900: 0.23 0.022 255;
+    --gray-950: 0.17 0.014 255;
+
+    --background: var(--gray-0);
+    --foreground: var(--gray-900);
+    --card: var(--gray-0);
+    --card-foreground: var(--gray-900);
+    --popover: var(--gray-0);
+    --popover-foreground: var(--gray-900);
+    --primary: var(--gray-900);
+    --primary-foreground: var(--gray-50);
     /* iOS grouped background: sheet surface that white cards sit on */
-    --secondary: 0.967 0.004 286;
-    --secondary-foreground: 0.2 0.006 265;
-    --muted: 0.967 0.004 286;
-    --muted-foreground: 0.52 0.01 270;
-    --accent: 0.94 0.005 286;
-    --accent-foreground: 0.2 0.006 265;
+    --secondary: var(--gray-100);
+    --secondary-foreground: var(--gray-900);
+    --muted: var(--gray-100);
+    /* Holds 7:1 (AAA) on white and on every status tint */
+    --muted-foreground: var(--gray-700);
+    --accent: var(--gray-200);
+    --accent-foreground: var(--gray-900);
     --destructive: 0.58 0.21 27;
-    --destructive-foreground: 0.985 0 0;
+    --destructive-foreground: var(--gray-50);
     /* Solid because Tailwind appends its own alpha; use border-foreground/10 over imagery */
-    --border: 0.91 0.004 270;
-    --input: 0.9 0.005 270;
-    --ring: 0.2 0.006 265;
+    --border: var(--gray-300);
+    --input: var(--gray-300);
+    --ring: var(--gray-900);
+
+    /* Elevation, all tinted with the same cool color */
+    --shadow-color: var(--gray-950);
     /* Raised surfaces: a ring in the divider color for the edge plus a soft drop */
-    --shadow-raised: 0 0 0 1px oklch(var(--border)), 0 1px 2px oklch(0 0 0 / 0.035), 0 2px 6px oklch(0 0 0 / 0.025);
+    --shadow-raised: 0 0 0 1px oklch(var(--border)), 0 1px 2px oklch(var(--shadow-color) / 0.04), 0 2px 6px oklch(var(--shadow-color) / 0.03);
+    --shadow-floating: 0 1px 2px oklch(var(--shadow-color) / 0.08), 0 8px 24px oklch(var(--shadow-color) / 0.16);
+    --shadow-sheet: 0 -1px 0 oklch(var(--shadow-color) / 0.04), 0 -8px 24px oklch(var(--shadow-color) / 0.12);
+    --shadow-overlay: 0 1px 2px oklch(var(--shadow-color) / 0.08), 0 4px 12px oklch(var(--shadow-color) / 0.1);
+    --shadow-on-photo: 0 1px 2px oklch(var(--shadow-color) / 0.12), 0 2px 8px oklch(var(--shadow-color) / 0.12);
+    --shadow-badge: 0 1px 2px oklch(var(--shadow-color) / 0.2);
+    --shadow-scrolled: 0 6px 12px -8px oklch(var(--shadow-color) / 0.18);
+
+    /* Community access tips */
+    --access-tip: 0.94 0.05 322;
+    --access-tip-foreground: 0.39 0.13 322;
+
     --chart-1: 0.65 0.19 41;
     --chart-2: 0.6 0.1 185;
     --chart-3: 0.4 0.07 227;
@@ -504,15 +575,17 @@ div#__next > div {
     --radius-sheet: 1.75rem;
 
     /* Elevator status. Hues match the map legend: teal check, amber warning, red out */
-    --status-ok: 0.73 0.12 214;
-    --status-ok-foreground: 0.47 0.09 222;
+    --status-ok: 0.62 0.1 214;
+    --status-ok-foreground: 0.415 0.075 222;
     --status-ok-muted: 0.95 0.03 214;
     --status-partial: 0.82 0.17 80;
-    --status-partial-foreground: 0.5 0.12 65;
+    --status-partial-foreground: 0.44 0.1 65;
     --status-partial-muted: 0.96 0.05 88;
-    --status-out: 0.55 0.21 27;
-    --status-out-foreground: 0.5 0.19 27;
+    --status-out: 0.48 0.18 27;
+    --status-out-foreground: 0.44 0.18 27;
     --status-out-muted: 0.95 0.03 25;
+    /* Text and icons on the solid out-of-service red */
+    --status-out-on: var(--gray-0);
 
     /* Height of the collapsed home sheet; map controls sit above it.
        --bottom-popup-h is what the control stack (geolocate, zoom-out, compass) reads. */
@@ -520,28 +593,32 @@ div#__next > div {
     --bottom-popup-h: var(--sheet-peek);
   }
 
+  /* The same ramp, read from the other end */
   .dark {
-    --background: 0.16 0.004 265;
-    --foreground: 0.97 0 0;
-    --card: 0.21 0.005 265;
-    --card-foreground: 0.97 0 0;
-    --popover: 0.21 0.005 265;
-    --popover-foreground: 0.97 0 0;
-    --primary: 0.97 0 0;
-    --primary-foreground: 0.2 0.006 265;
-    --secondary: 0.16 0.004 265;
-    --secondary-foreground: 0.97 0 0;
-    --muted: 0.27 0.006 265;
-    --muted-foreground: 0.72 0.01 270;
-    --accent: 0.27 0.006 265;
-    --accent-foreground: 0.97 0 0;
+    --background: var(--gray-950);
+    --foreground: var(--gray-50);
+    --card: var(--gray-900);
+    --card-foreground: var(--gray-50);
+    --popover: var(--gray-900);
+    --popover-foreground: var(--gray-50);
+    --primary: var(--gray-50);
+    --primary-foreground: var(--gray-900);
+    --secondary: var(--gray-950);
+    --secondary-foreground: var(--gray-50);
+    --muted: var(--gray-850);
+    --muted-foreground: var(--gray-400);
+    --accent: var(--gray-850);
+    --accent-foreground: var(--gray-50);
     --destructive: 0.5 0.17 27;
-    --destructive-foreground: 0.97 0 0;
-    --border: 0.29 0.006 265;
-    --input: 0.29 0.006 265;
-    --ring: 0.85 0.005 265;
+    --destructive-foreground: var(--gray-50);
+    --border: var(--gray-850);
+    --input: var(--gray-850);
+    --ring: var(--gray-400);
+    --shadow-color: 0 0 0;
     /* Drops vanish on a dark background, so the ring carries the edge */
-    --shadow-raised: 0 0 0 1px oklch(var(--border)), 0 1px 2px oklch(0 0 0 / 0.3);
+    --shadow-raised: 0 0 0 1px oklch(var(--border)), 0 1px 2px oklch(var(--shadow-color) / 0.3);
+    --access-tip: 0.3 0.06 322;
+    --access-tip-foreground: 0.85 0.09 322;
     --chart-1: 0.49 0.22 264;
     --chart-2: 0.7 0.16 162;
     --chart-3: 0.77 0.17 65;
@@ -556,12 +633,19 @@ div#__next > div {
     --status-out: 0.6 0.18 27;
     --status-out-foreground: 0.75 0.14 25;
     --status-out-muted: 0.3 0.07 25;
+    --status-out-on: var(--gray-0);
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+  }
+
+  /* 2px at 16:1, so keyboard focus is obvious on any surface */
+  :focus-visible {
+    outline: 2px solid oklch(var(--ring));
+    outline-offset: 2px;
   }
 
   body {
@@ -572,9 +656,9 @@ div#__next > div {
 /* Map-center locator pin (shown when user drags the map).
    Positioned via CSS vars set by MtaMap — change the constants there, not here. */
 @keyframes centerPinDrop {
-  0%   { transform: translate(-50%, calc(-100% - 12px)); filter: drop-shadow(0 8px 10px rgba(0,0,0,0.4)); }
+  0%   { transform: translate(-50%, calc(-100% - 12px)); filter: drop-shadow(0 8px 10px oklch(var(--shadow-color) / 0.4)); }
   70%  { transform: translate(-50%, calc(-100% + 3px)); }
-  100% { transform: translate(-50%, -100%); filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25)); }
+  100% { transform: translate(-50%, -100%); filter: drop-shadow(0 2px 3px oklch(var(--shadow-color) / 0.25)); }
 }
 
 /* settled — pin tip sits exactly at the map center point */
@@ -584,7 +668,7 @@ div#__next > div {
   top: calc((100dvh - var(--mobile-shift-dvh, 40dvh)) / 2);
   transform: translate(-50%, -100%);
   font-size: 28px;
-  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.05));
+  filter: drop-shadow(0 2px 3px oklch(var(--shadow-color) / 0.05));
   pointer-events: none;
   z-index: var(--z-index-center-pin);
   display: flex;
@@ -595,7 +679,7 @@ div#__next > div {
 /* floating/dragging — animation: none lets the drop retrigger on release */
 .map-center-pin.floating {
   opacity: 0.55;
-  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.5));
+  filter: drop-shadow(0 6px 10px oklch(var(--shadow-color) / 0.5));
   animation: none;
 }
 

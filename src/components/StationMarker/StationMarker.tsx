@@ -1,5 +1,6 @@
 import React from "react";
 import { Accessibility, Wrench } from "lucide-react";
+import { mapColors } from "@/styles/mapColors";
 
 // How a station shows on the map. The state is carried by shape first and color second, so it
 // reads for colorblind riders and in glare: a plain marker when every elevator works, a gray marker
@@ -13,9 +14,9 @@ import { Accessibility, Wrench } from "lucide-react";
 export type StationAccess = "ok" | "partial" | "out" | "none";
 
 const TONES = {
-  ok: { fill: "#1D9DB8" },
-  partial: { fill: "oklch(0.56 0.02 255)", dot: "#F2A900" },
-  out: { fill: "#D33A2C" },
+  ok: { fill: mapColors.statusOk },
+  partial: { fill: mapColors.markerPartial, dot: mapColors.statusPartialDot },
+  out: { fill: mapColors.statusOut },
 } as const;
 
 // Square canvas, marker dead centre so it sits on the track; the dot tucks into the top-right corner
@@ -28,7 +29,7 @@ export function StationMarker({ access, size = MARKER_SIZE }: { access: StationA
   if (access === "none") {
     return (
       <svg width={size} height={size} viewBox={`0 0 ${MARKER_SIZE} ${MARKER_SIZE}`} aria-hidden="true">
-        <circle cx={CENTER} cy={CENTER} r={6} fill="#FFFFFF" stroke="oklch(0.62 0.018 255)" strokeWidth={2.5} />
+        <circle cx={CENTER} cy={CENTER} r={6} fill={mapColors.surface} stroke={mapColors.markerNone} strokeWidth={2.5} />
       </svg>
     );
   }
@@ -38,7 +39,7 @@ export function StationMarker({ access, size = MARKER_SIZE }: { access: StationA
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${MARKER_SIZE} ${MARKER_SIZE}`} aria-hidden="true">
-      <circle cx={CENTER} cy={CENTER} r={RADIUS + RING} fill="#FFFFFF" />
+      <circle cx={CENTER} cy={CENTER} r={RADIUS + RING} fill={mapColors.surface} />
       <circle cx={CENTER} cy={CENTER} r={RADIUS} fill={tone.fill} />
       {access === "out" ? (
         <WrenchOff x={CENTER - icon / 2} y={CENTER - icon / 2} size={icon} />
@@ -48,13 +49,13 @@ export function StationMarker({ access, size = MARKER_SIZE }: { access: StationA
           y={CENTER - icon / 2}
           width={icon}
           height={icon}
-          color="#FFFFFF"
+          color={mapColors.surface}
           strokeWidth={2.4}
         />
       )}
       {"dot" in tone && (
         <>
-          <circle cx={27.5} cy={6.5} r={6.5} fill="#FFFFFF" />
+          <circle cx={27.5} cy={6.5} r={6.5} fill={mapColors.surface} />
           <circle cx={27.5} cy={6.5} r={4.75} fill={tone.dot} />
         </>
       )}
@@ -67,9 +68,9 @@ export function StationMarker({ access, size = MARKER_SIZE }: { access: StationA
 function WrenchOff({ x, y, size }: { x: number; y: number; size: number }) {
   return (
     <svg x={x} y={y} width={size} height={size} viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <Wrench color="#FFFFFF" strokeWidth={2.4} />
+      <Wrench color={mapColors.surface} strokeWidth={2.4} />
       <line x1={2} y1={2} x2={22} y2={22} stroke={TONES.out.fill} strokeWidth={6} />
-      <line x1={2} y1={2} x2={22} y2={22} stroke="#FFFFFF" strokeWidth={2.4} />
+      <line x1={2} y1={2} x2={22} y2={22} stroke={mapColors.surface} strokeWidth={2.4} />
     </svg>
   );
 }
@@ -87,10 +88,10 @@ export function StationPill({ access }: { access?: StationAccess } = {}) {
       ? TONES.partial.dot
       : access && access !== "none"
         ? TONES[access].fill
-        : "oklch(0.82 0.012 255)";
+        : mapColors.markerOutline;
   return (
     <svg width={PILL_WIDTH} height={PILL_HEIGHT} viewBox={`0 0 ${PILL_WIDTH} ${PILL_HEIGHT}`} aria-hidden="true">
-      <rect x={3} y={3} width={PILL_WIDTH - 6} height={PILL_HEIGHT - 6} rx={(PILL_HEIGHT - 6) / 2} fill="#FFFFFF" stroke={stroke} strokeWidth={2} />
+      <rect x={3} y={3} width={PILL_WIDTH - 6} height={PILL_HEIGHT - 6} rx={(PILL_HEIGHT - 6) / 2} fill={mapColors.surface} stroke={stroke} strokeWidth={2} />
     </svg>
   );
 }

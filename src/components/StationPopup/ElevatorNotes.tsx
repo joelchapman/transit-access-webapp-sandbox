@@ -11,14 +11,14 @@ import { cn } from "@/lib/utils";
 
 export function AccessTipNote({ note }: { note: string }) {
   return (
-    <div className="flex gap-2.5 rounded-lg bg-[#f4c6fb]/50 p-3 text-subhead text-pretty">
-      <span className="mt-0.5 shrink-0" aria-hidden="true">
-        <AccessibleIconWhite size={16} fill="#6b2177" />
-      </span>
+    <div className="flex justify-between gap-2.5 rounded-[8px] bg-access-tip p-3 text-subhead text-pretty">
       <p>
         <span className="font-semibold">Access tip </span>
         {note}
       </p>
+      <span className="mt-0.5 shrink-0" aria-hidden="true">
+        <AccessibleIconWhite size={16} fill="oklch(var(--access-tip-foreground))" />
+      </span>
     </div>
   );
 }
@@ -41,21 +41,21 @@ export function PlannedOutageNotes({
           <div
             key={i}
             className={cn(
-              "flex gap-2.5 rounded-lg p-3 text-subhead text-pretty",
+              "flex justify-between gap-2.5 rounded-[8px] p-3 text-subhead text-pretty",
               isImpending ? "bg-status-out-muted" : "bg-status-partial-muted",
             )}
           >
-            <Wrench
-              className={cn("mt-0.5 size-4 shrink-0", isImpending ? "text-status-out" : "text-status-partial")}
-              strokeWidth={2.25}
-              aria-hidden="true"
-            />
             <p>
               <span className="font-semibold">
                 Upcoming {isLongTerm ? "Long-term" : "Short-term"} Outage{" "}
               </span>
               {o.outageDuration} ({o.reason})
             </p>
+            <Wrench
+              className={cn("mt-0.5 size-4 shrink-0", isImpending ? "text-status-out" : "text-status-partial")}
+              strokeWidth={2.25}
+              aria-hidden="true"
+            />
           </div>
         );
       })}

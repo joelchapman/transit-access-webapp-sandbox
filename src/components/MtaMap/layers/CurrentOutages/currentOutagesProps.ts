@@ -1,3 +1,5 @@
+import { mapColors } from "@/styles/mapColors";
+
 // naming convention: file is plural, export is singular.
 // import runs into ts type problems when they're the same (unconfirmed but suspected)
 
@@ -101,13 +103,13 @@ export const stationDotProps = {
     "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 2.5, 10, 3.5],
     "circle-color": [
       "case",
-      ["==", ["get", "isOut"], true],     "#D33A2C", // red   — all elevators out
-      ["==", ["get", "isProblem"], true], "#E39B0B", // amber — partial outage
-      "#1D9DB8",                                     // teal  — all working (same as StationMarker)
+      ["==", ["get", "isOut"], true],     mapColors.statusOut, // red   — all elevators out
+      ["==", ["get", "isProblem"], true], mapColors.statusPartial, // amber — partial outage
+      mapColors.statusOk,                                  // teal  — all working (same as StationMarker)
     ],
     "circle-translate-anchor": "viewport",
     "circle-stroke-width": 1,
-    "circle-stroke-color": "#FFFFFF",
+    "circle-stroke-color": mapColors.surface,
     "circle-opacity": ["step", ["zoom"], 1, dotView, 0],
     "circle-stroke-opacity": ["step", ["zoom"], 1, dotView, 0],
   },
@@ -126,7 +128,7 @@ export const animationProps = {
       17, 20, 
       18, 0,
     ],
-    "circle-color": "#2bb7ce", // Bright teal glow color
+    "circle-color": mapColors.stationGlow, // Bright teal glow color
     "circle-opacity": 0,
     "circle-blur": 0.6,
     "circle-translate": [0, -20],

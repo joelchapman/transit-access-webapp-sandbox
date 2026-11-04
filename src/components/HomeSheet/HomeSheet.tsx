@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 import { Command as CommandPrimitive } from "cmdk";
 import { matchSorter } from "match-sorter";
-import { Info, Search, X, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Star } from "lucide-react";
-import { StatusPill, StatusTone, OutOfServiceIcon, MaintenanceBadge } from "@/components/StationPopup/StatusBadges";
+import { Info, Search, X, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
+import { MaintenanceBadge } from "@/components/StationPopup/StatusBadges";
 import { ROW_PRESS, BUTTON_PRESS, RAISED_BUTTON } from "@/lib/interaction";
 import { Drawer, DrawerPortal, DrawerTitle } from "@/components/ui/drawer";
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
@@ -11,8 +11,7 @@ import { Button } from "@/components/ui/button";
 import { LineBullets } from "@/components/LineBullets/LineBullets";
 import { StatusIcon } from "@/components/StatusIcon/StatusIcon";
 import LegendPage from "@/components/Legend/LegendPage";
-import { LocationPin, AccessibleIconWhite, ElevatorIcon, Ramp } from "@/components/icons";
-import { ElevatorMarkerInverted } from "@/components/ElevatorMarker/ElevatorMarker";
+import { LocationPin, AccessibleIconWhite } from "@/components/icons";
 import { useNearbyStations, WALKING_RADII, formatWalkingDistance } from "./useNearbyStations";
 import { getComplexesDataset } from "@/lib/dataStore";
 import { getElevatorsByComplexId } from "@/utils/dataUtils";
@@ -25,6 +24,9 @@ const SNAP_HALF = 0.55;
 const SNAP_FULL = 0.94;
 const MAX_RESULTS = 40;
 const GESTURE_RETURN_DELAY_MS = 300;
+// A collapsed sheet's content sits below the screen, so keyboard focus must not land in it
+const COLLAPSED_PROPS = { inert: "" } as object;
+export const STATIONS_PANEL_ID = "stations-panel";
 // The sheet's slide takes this long, so even a quick gesture lets it finish getting out of the way
 const SHEET_SLIDE_MS = 500;
 // Matches the breakpoint MtaMap.tsx already uses for desktop-only map behavior
@@ -95,62 +97,14 @@ function StationLabel({ name, routes }: { name: string; routes: string[] }) {
 
 const toBool = (v: unknown) => v === true || v === "true" || v === "1";
 
-// A status icon that reveals its label on hover (desktop) or tap (touch) — a stateful tap toggle
-// layered under the same hover-only CSS language LineBullets uses for its fan-out.
-// tone="out" makes the revealed label match OutOfServicePill's look (solid red, white text);
-// tone="ok" matches InServicePill's look (muted teal, teal text).
-function IconWithLabel({ icon, label, tone = "neutral" }: { icon: React.ReactNode; label: string; tone?: "out" | "ok" | "neutral" }) {
-  const [open, setOpen] = useState(false);
-  const pill = tone !== "neutral";
-  return (
-    <button
-      type="button"
-      onClick={(e) => {
-        // On a hover-capable pointer the label is already showing by the time a click
-        // happens (CSS :hover), so a click should always fall through to the row. On
-        // touch, there's no hover reveal, so tapping the icon toggles the label itself.
-        if (window.matchMedia("(hover: hover)").matches) return;
-        e.stopPropagation();
-        setOpen((o) => !o);
-      }}
-      onBlur={() => setOpen(false)}
-      className="group/hint inline-flex shrink-0 items-center"
-    >
-      <span className="shrink-0">{icon}</span>
-      <span
-        aria-hidden="true"
-        className={cn(
-          "overflow-hidden whitespace-nowrap text-[10px] font-semibold leading-[1.1] transition-[max-width,margin,padding,background-color,color,opacity] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
-          pill && "rounded-full",
-          open
-            ? cn(
-                "ml-1 max-w-[120px] opacity-100",
-                tone === "out" && "bg-status-out px-2 py-0.5 text-white",
-                tone === "ok" && "bg-status-ok-muted px-2 py-0.5 text-status-ok-foreground",
-              )
-            : cn(
-                "max-w-0 opacity-0",
-                "[@media(hover:hover)]:group-hover/hint:ml-1 [@media(hover:hover)]:group-hover/hint:max-w-[120px] [@media(hover:hover)]:group-hover/hint:opacity-100",
-                tone === "out" &&
-                  "[@media(hover:hover)]:group-hover/hint:bg-status-out [@media(hover:hover)]:group-hover/hint:px-2 [@media(hover:hover)]:group-hover/hint:py-0.5 [@media(hover:hover)]:group-hover/hint:text-white",
-                tone === "ok" &&
-                  "[@media(hover:hover)]:group-hover/hint:bg-status-ok-muted [@media(hover:hover)]:group-hover/hint:px-2 [@media(hover:hover)]:group-hover/hint:py-0.5 [@media(hover:hover)]:group-hover/hint:text-status-ok-foreground",
-              ),
-        )}
-      >
-        {label}
-      </span>
-      <span className="sr-only">{label}</span>
-    </button>
-  );
-}
-
 // One out-of-service elevator, indented below its station — same info the old
 // NearbyStationsPopup showed per elevator, ported to the new row style.
-function OutElevatorRow({ el }: { el: any }) {
+function OutElevatorRow({ el, stationRoutes }: { el: any; stationRoutes: string[] }) {
   const isRamp = el.properties.elevatorno?.toLowerCase().includes("ra");
   const isStreet = toBool(el.properties.isStreet);
-  const lines = (el.properties.linesServed || "").replace(/-/g, "").replaceAll("/", " ");
+  const lines: string[] = (el.properties.linesServed || "").replace(/-/g, "").split("/").join(" ").split(" ").filter(Boolean);
+  // Lines only say something here if the elevator serves some of the station's lines, not all of them
+  const servesSomeLines = stationRoutes.some((route) => !lines.includes(route));
   const direction = el.properties.directionLabel || "";
   const title = isRamp
     ? "Ramp"
@@ -159,49 +113,56 @@ function OutElevatorRow({ el }: { el: any }) {
       : `Elevator${el.properties.isBridge ? " to overpass" : ""}${el.properties.isMezzTransferOnly ? " to lower mezzanine" : ""}`;
 
   return (
-    <div className="flex items-start gap-2 py-1.5 pl-8 pr-4 text-footnote text-muted-foreground">
-      <span className="mt-0.5 flex shrink-0 items-center gap-1.5">
-        <IconWithLabel icon={<OutOfServiceIcon className="size-3.5" />} label="Out of service" tone="out" />
-        {el.properties.isRedundant === "1" && (
-          <IconWithLabel
-            icon={<Star className="size-3.5 text-status-ok" strokeWidth={2.5} aria-hidden="true" />}
-            label="Redundant elevator"
-            tone="ok"
-          />
-        )}
-        <span aria-hidden="true">
-          {isRamp ? <Ramp size={16} /> : isStreet ? <ElevatorIcon size={16} /> : <ElevatorMarkerInverted state="ok" size={16} />}
-        </span>
-      </span>
-      <span className="min-w-0 flex-1 truncate">
+    <div className="flex flex-col text-footnote text-muted-foreground">
+      <span className="truncate">
         {title}
-        {!isRamp && lines && <> <LineBullets routes={lines.split(" ").filter(Boolean)} size="xs" animated={false} /></>}
+        {!isRamp && servesSomeLines && lines.length > 0 && <> <LineBullets routes={lines} size="xs" animated={false} /></>}
         {direction && ` (${direction})`}
       </span>
+      {el.properties.isRedundant === "1" && (
+        <span className="mt-1 text-caption font-semibold text-status-ok-foreground">Another path available</span>
+      )}
     </div>
   );
 }
 
-function OutElevatorList({ elevators }: { elevators: any[] }) {
-  if (elevators.length === 0) return null;
+// Stations are assumed to be working, so only an outage says anything: a banner under the station
+// with the elevators it affects.
+function OutageBanner({
+  status,
+  count,
+  elevators,
+  stationRoutes,
+}: {
+  status: ComplexStatus;
+  count: number;
+  elevators: any[];
+  stationRoutes: string[];
+}) {
+  if (status === "ok") return null;
+  const isOut = status === "out";
   return (
-    <div className="flex flex-col pb-1.5">
+    <div className={cn("mx-3 mb-3 flex flex-col gap-1.5 rounded-[8px] px-3 py-2", isOut ? "bg-status-out-muted" : "bg-status-partial-muted")}>
+      <p
+        className={cn(
+          "flex items-center justify-between gap-1.5 text-footnote font-semibold",
+          isOut ? "text-status-out-foreground" : "text-status-partial-foreground",
+        )}
+      >
+        {isOut ? "All elevators out" : count > 0 ? `${count} ${count === 1 ? "elevator" : "elevators"} out` : "Some elevators out"}
+        <StatusIcon
+          glyph="alert"
+          className={cn(
+            "size-4",
+            isOut ? "text-status-out" : "text-status-partial [--status-icon-glyph:oklch(var(--status-partial-foreground))]",
+          )}
+        />
+      </p>
       {elevators.map((el, i) => (
-        <OutElevatorRow key={el.properties.elevatorno ?? i} el={el} />
+        <OutElevatorRow key={el.properties.elevatorno ?? i} el={el} stationRoutes={stationRoutes} />
       ))}
     </div>
   );
-}
-
-const STATUS_CHIPS: Record<ComplexStatus, { tone: StatusTone; label: string }> = {
-  ok: { tone: "ok", label: "Working" },
-  partial: { tone: "partial", label: "Some out" },
-  out: { tone: "out", label: "All out" },
-};
-
-function StatusChip({ status, label }: { status: ComplexStatus; label?: string }) {
-  const chip = STATUS_CHIPS[status];
-  return <StatusPill tone={chip.tone}>{label ?? chip.label}</StatusPill>;
 }
 
 // Inset grouped list: outlined card on the white sheet, rows split by dividers
@@ -247,7 +208,7 @@ function ScrollEdge({ children }: { children: React.ReactNode }) {
       <div
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute inset-x-0 top-0 z-10 h-2 border-t border-border bg-gradient-to-b from-foreground/[0.06] to-transparent transition-opacity duration-150 motion-reduce:transition-none",
+          "pointer-events-none absolute inset-x-0 top-0 z-10 h-2 border-t border-border bg-gradient-to-b from-fill-subtle to-transparent transition-opacity duration-150 motion-reduce:transition-none",
           isScrolled ? "opacity-100" : "opacity-0",
         )}
       />
@@ -277,6 +238,7 @@ function SubPage({
 }) {
   const scroller = (
     <div
+      {...(scrollable ? {} : COLLAPSED_PROPS)}
       className={cn(
         "min-h-0 flex-1 overscroll-contain",
         scrollable ? "overflow-y-auto" : "overflow-hidden",
@@ -328,7 +290,7 @@ function AdoptedNode({ node }: { node: HTMLElement }) {
 
 // Highlight only while the sheet has focus, so touch users don't see a phantom selection
 const itemClass =
-  "group/row flex min-h-14 cursor-pointer items-center gap-3 rounded-none px-4 py-3 text-body transition-colors duration-150 data-[selected=true]:bg-transparent hover:!bg-foreground/[0.04] active:!bg-foreground/[0.08] group-focus-within:data-[selected=true]:bg-foreground/[0.04]";
+  "group/row flex min-h-14 cursor-pointer items-center gap-3 rounded-none px-4 py-3 text-body transition-colors duration-150 data-[selected=true]:bg-transparent hover:!bg-state-hover active:!bg-state-press group-focus-within:data-[selected=true]:bg-state-hover group-focus-within:data-[selected=true]:[outline:2px_solid_oklch(var(--ring))] group-focus-within:data-[selected=true]:[outline-offset:-2px]";
 
 // Same row, but stacked vertically so an out-of-service elevator sublist can live inside the
 // same clickable item as the station summary — the whole block, elevators included, is one button.
@@ -336,7 +298,7 @@ const itemClass =
 // (items-stretch, px-0 py-0) so the two children below take the item's full width instead of
 // shrinking to their content and centering — which is what let long rows overflow sideways.
 const itemWithSublistClass =
-  "group/row flex flex-col items-stretch gap-0 cursor-pointer rounded-none px-0 py-0 text-body transition-colors duration-150 data-[selected=true]:bg-transparent hover:!bg-foreground/[0.04] active:!bg-foreground/[0.08] group-focus-within:data-[selected=true]:bg-foreground/[0.04]";
+  "group/row flex flex-col items-stretch gap-0 cursor-pointer rounded-none px-0 py-0 text-body transition-colors duration-150 data-[selected=true]:bg-transparent hover:!bg-state-hover active:!bg-state-press group-focus-within:data-[selected=true]:bg-state-hover group-focus-within:data-[selected=true]:[outline:2px_solid_oklch(var(--ring))] group-focus-within:data-[selected=true]:[outline-offset:-2px]";
 
 const HomeSheet: React.FC<HomeSheetProps> = ({
   open,
@@ -375,6 +337,16 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
     snapBeforeGesture.current = null;
     setSnap(page ? SNAP_HALF : SNAP_PEEK);
   }, [page]);
+
+  // Leaving a sub-page removes whatever had focus, so bring it back to the panel. Stations move
+  // focus to their own title on the way in.
+  const wasOnSubPage = useRef(false);
+  useEffect(() => {
+    const onSubPage = !!page || isLegendOpen;
+    if (onSubPage === wasOnSubPage.current) return;
+    wasOnSubPage.current = onSubPage;
+    if (!page) document.getElementById(STATIONS_PANEL_ID)?.focus({ preventScroll: true });
+  }, [page, isLegendOpen]);
 
   // Touching the map tucks the sheet away until shortly after the gesture ends. Another gesture
   // before then restarts the wait; moving the sheet in the meantime cancels the return.
@@ -539,7 +511,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
   const content = (
     <>
       {!isDesktop && (
-        <div className="mx-auto mt-2 h-[5px] w-9 shrink-0 rounded-full bg-foreground/20" aria-hidden="true" />
+        <div className="mx-auto mt-2 h-[5px] w-9 shrink-0 rounded-full bg-handle" aria-hidden="true" />
       )}
 
       {page ? (
@@ -593,7 +565,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
               </header>
 
               <div className="px-4 pb-3">
-                <div className="flex h-11 items-center gap-2 rounded-xl bg-foreground/[0.06] px-4 focus-within:ring-2 focus-within:ring-foreground/10">
+                <div className="flex h-11 items-center gap-2 rounded-xl bg-fill-subtle px-4 focus-within:ring-2 focus-within:ring-ring">
                   <Search className="size-[18px] shrink-0 text-muted-foreground" aria-hidden="true" />
                   <CommandPrimitive.Input
                     ref={inputRef}
@@ -630,6 +602,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
 
               <ScrollEdge>
               <CommandList
+                {...(isScrollable ? {} : COLLAPSED_PROPS)}
                 className={cn(
                   "max-h-none flex-1 overscroll-contain",
                   isScrollable ? "overflow-y-auto" : "overflow-hidden",
@@ -697,7 +670,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                                   "relative h-8 shrink-0 rounded-full px-3 text-footnote font-semibold tabular-nums transition-colors duration-150 before:absolute before:inset-x-0 before:-inset-y-1.5",
                                   active
                                     ? "bg-foreground text-background shadow-raised"
-                                    : "text-foreground shadow-raised hover:bg-foreground/[0.04] active:bg-foreground/[0.08]",
+                                    : "text-foreground shadow-raised hover:bg-state-hover active:bg-state-press",
                                 )}
                               >
                                 {label}
@@ -746,10 +719,6 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                                     )}
                                   </span>
                                   <span className="flex shrink-0 flex-col items-end gap-1.5">
-                                    <StatusChip
-                                      status={station.status}
-                                      label={station.status === "partial" && station.outCount > 0 ? `${station.outCount} out` : undefined}
-                                    />
                                     {nearby.showDistances && (
                                       <button
                                         type="button"
@@ -767,7 +736,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                                             ? `${nearby.distanceSource === "gps" ? "GPS" : "Map center"} distance: ${formatWalkingDistance(station.walkingMiles)}. Tap to switch.`
                                             : undefined
                                         }
-                                        className="flex items-center gap-1 pr-1 text-footnote tabular-nums text-muted-foreground disabled:cursor-default"
+                                        className="relative flex items-center gap-1 pr-1 text-footnote tabular-nums text-muted-foreground before:absolute before:-inset-3 disabled:cursor-default"
                                       >
                                         {station.isPinDistance && <LocationPin size="12px" />}
                                         {formatWalkingDistance(station.walkingMiles)}
@@ -776,7 +745,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                                     )}
                                   </span>
                                 </span>
-                                <OutElevatorList elevators={station.outElevators} />
+                                <OutageBanner status={station.status} count={station.outCount} elevators={station.outElevators} stationRoutes={station.routes} />
                               </CommandItem>
                             ))}
                           </div>
@@ -803,12 +772,8 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                             >
                               <span className="flex min-h-14 w-full items-center gap-3 px-4 py-3">
                                 <StationLabel name={row.name} routes={Array.from(row.routes)} />
-                                <StatusChip
-                                  status={row.status}
-                                  label={row.status === "partial" && row.outElevators.length > 0 ? `${row.outElevators.length} out` : undefined}
-                                />
                               </span>
-                              <OutElevatorList elevators={row.outElevators} />
+                              <OutageBanner status={row.status} count={row.outElevators.length} elevators={row.outElevators} stationRoutes={Array.from(row.routes)} />
                             </CommandItem>
                           ))}
                         </Group>
@@ -822,7 +787,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                           href={link.href}
                           target={link.href.startsWith("mailto:") ? undefined : "_blank"}
                           rel="noreferrer"
-                          className={cn("flex min-h-12 items-center justify-between px-4 py-3 text-body", ROW_PRESS)}
+                          className={cn("flex min-h-12 items-center justify-between px-4 py-3 text-body focus-visible:[outline-offset:-2px]", ROW_PRESS)}
                         >
                           {link.label}
                           <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
@@ -842,12 +807,14 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
     if (!open) return null;
     return (
       <div
-        role="dialog"
+        id={STATIONS_PANEL_ID}
+        tabIndex={-1}
+        role="region"
         aria-label="Stations"
         className={cn(
           // Same slide as the mobile sheet; the extra 48px clears the 16px gutter and the shadow.
           // The height leaves room for the Mapbox logo and info icon below: 16px top + 73px + 8px gap.
-          "fixed left-4 top-4 z-[998] flex max-h-[calc(100dvh-97px)] w-[380px] flex-col overflow-hidden rounded-sheet bg-background shadow-[0_1px_2px_oklch(0_0_0/0.08),0_8px_24px_oklch(0_0_0/0.16)] outline-none transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+          "fixed left-4 top-4 z-[998] flex max-h-[calc(100dvh-97px)] w-[380px] flex-col overflow-hidden rounded-sheet bg-background shadow-floating outline-none transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
           isTucked && "-translate-x-[calc(100%+48px)]",
         )}
       >
@@ -868,9 +835,11 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
     >
       <DrawerPortal>
         <DrawerPrimitive.Content
+          id={STATIONS_PANEL_ID}
+          tabIndex={-1}
           aria-describedby={undefined}
           onOpenAutoFocus={(e) => e.preventDefault()}
-          className="fixed inset-x-0 bottom-0 z-[998] mx-auto flex h-dvh max-w-lg flex-col rounded-t-sheet bg-background shadow-[0_-1px_0_oklch(0_0_0/0.04),0_-8px_24px_oklch(0_0_0/0.12)] outline-none"
+          className="fixed inset-x-0 bottom-0 z-[998] mx-auto flex h-dvh max-w-lg flex-col rounded-t-sheet bg-background shadow-sheet outline-none"
         >
           {content}
         </DrawerPrimitive.Content>

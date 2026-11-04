@@ -193,7 +193,7 @@
   font-size: 0.75rem;
   display: flex;
   align-items: center;
-  color: #111111 !important;
+  color: oklch(var(--foreground)) !important;
   gap: 0.25rem;
   margin-left: 0.25rem;
   font-weight: 300;
@@ -242,7 +242,7 @@
 
 .lastUpdated {
   font-family: -apple-system, BlinkMacSystemFont, Helvetica Neue, Helvetica, Arial, sans-serif;
-  color: #707070;
+  color: oklch(var(--muted-foreground));
   align-items: center;
   justify-items: center;
   margin-left: 0.5rem;

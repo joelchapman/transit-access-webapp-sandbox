@@ -1,3 +1,5 @@
+import { mapColors } from "./mapColors";
+
 // A muted base map in the spirit of Apple Maps' transit view, applied on top of the Mapbox Studio
 // export (mapbox-style.json) when the map is created. The export stays untouched, so it can be
 // re-exported from Studio at any time and this theme still applies.
@@ -10,28 +12,28 @@ type Layer = { id: string; type: string; paint?: Record<string, unknown>; layout
 type Style = { layers: Layer[]; [k: string]: unknown };
 
 const C = {
-  land: "#F3F2EF",
-  landLow: "#F6F5F3",
-  landStreet: "#F5F2EA",
+  land: "#EFF2F6",
+  landLow: "#F2F5F9",
+  landStreet: "#EFF2F6",
   park: "#DDEBD5",
   water: "#B7DCF4",
-  waterLabel: "#6E9CC2",
-  parkLabel: "#7A9A6B",
-  road: "#FFFFFF",
-  roadCase: "#E5E3DF",
-  majorCase: "#DDDAD5",
-  pavement: "#DCDDDF",
-  sidewalk: "#FAFAF8",
-  tunnel: "#EEEDEA",
-  building: "#E8E7E4",
-  buildingEdge: "#DAD8D4",
+  waterLabel: "#14405F",
+  parkLabel: "#2C4D23",
+  road: mapColors.surface,
+  roadCase: "#E1E3E7",
+  majorCase: "#D8DBDE",
+  pavement: "#DADDE1",
+  sidewalk: "#F7FAFE",
+  tunnel: "#EAEDF1",
+  building: "#E4E7EB",
+  buildingEdge: "#D6D9DC",
   buildingCommercial: "#F1E3C1",
   buildingCommercialEdge: "#E3D2A9",
-  buildingExtrusion: "#F0EFEC",
+  buildingExtrusion: "#ECEFF3",
   platform: "#F2A3A3",
   platformEdge: "#E48686",
-  label: "#7D7B77",
-  labelSoft: "#9A9893",
+  label: mapColors.label,
+  labelSoft: mapColors.label,
 };
 
 // Official MTA line colors, replacing the Studio style's approximations
@@ -153,9 +155,9 @@ export function applyMapTheme<T>(source: T): T {
   });
   paint("tunnel-path", { "line-color": C.platformEdge });
 
-  // Labels: one gray family, white halos, upright POI names, blue water and green park names
+  // Labels: all at least 7:1 on the surfaces they sit on. One gray family, white halos, upright POI names, blue water and green park names
   // Street names small, uppercase and letterspaced, so they read as annotation under the lines
-  paint("road-label-navigation", { "text-color": C.label, "text-halo-color": "#FFFFFF", "text-halo-width": 1.25 });
+  paint("road-label-navigation", { "text-color": C.label, "text-halo-color": mapColors.surface, "text-halo-width": 1.25 });
   layout("road-label-navigation", {
     "text-transform": "uppercase",
     "text-letter-spacing": 0.06,
@@ -186,7 +188,7 @@ export function applyMapTheme<T>(source: T): T {
       ...JSON.parse(JSON.stringify(lines)),
       id: "theme-subwaylines-casing",
       paint: {
-        "line-color": "#FFFFFF",
+        "line-color": mapColors.surface,
         "line-width": SUBWAY_CASING_WIDTH,
         "line-opacity": 1,
         "line-offset": SUBWAY_OFFSET,
@@ -213,8 +215,8 @@ export function applyMapTheme<T>(source: T): T {
     "text-radial-offset": 1.9, // clears the status badge on the marker's top right
   });
   paint("mta-subway-stations-accessible", {
-    "text-color": "#1D1D1F",
-    "text-halo-color": "#FFFFFF",
+    "text-color": mapColors.ink,
+    "text-halo-color": mapColors.surface,
     "text-halo-width": 1.5,
     "text-halo-blur": 0.5,
     "text-opacity": ["step", ["zoom"], 0, 13, 1, 15, 0],
@@ -229,7 +231,7 @@ export function applyMapTheme<T>(source: T): T {
     "text-radial-offset": 0.6,
   });
   paint("mta-subway-stations-inaccessible", {
-    "text-color": "#8A8883",
+    "text-color": C.label,
     // Matches the raw Studio style's original threshold (and the accessible labels' own) —
     // was bumped to 14 here, making inaccessible names only show up a zoom level closer in
     "text-opacity": ["step", ["zoom"], 0, 13, 1],
@@ -239,7 +241,7 @@ export function applyMapTheme<T>(source: T): T {
   // This export layer keeps the "Street Elevator" labels and tap target, and keeps its icon only for ramps
   const isRamp = ["==", ["slice", ["downcase", ["get", "elevatorno"]], 0, 2], "ra"];
   layout("transit-elevators", { "icon-image": ["case", isRamp, "ramp", ""] });
-  paint("transit-elevators", { "text-color": C.label, "text-halo-color": "#FFFFFF", "text-halo-width": 1.25 });
+  paint("transit-elevators", { "text-color": C.label, "text-halo-color": mapColors.surface, "text-halo-width": 1.25 });
 
   return style as T;
 }

@@ -16,6 +16,7 @@ import {
   ELEVATOR_MARKER_SIZE,
   PLANNED_BADGE_SIZE,
 } from "@/components/ElevatorMarker/ElevatorMarker";
+import { mapColors } from "@/styles/mapColors";
 
 // Turns the station and elevator marker components into map images, and gives their layers a pointer
 // cursor, since the marker and the name beside it are both tap targets:
@@ -45,7 +46,7 @@ function rasterize(element: React.ReactElement, width: number, height: number, r
       if (!ctx) return resolve(null);
       // A soft contact shadow lifts it off the map, so it reads as something to press
       if (shadow) {
-        ctx.shadowColor = "rgba(0, 0, 0, 0.22)";
+        ctx.shadowColor = mapColors.markerShadow;
         ctx.shadowBlur = 3 * ratio;
         ctx.shadowOffsetY = 1 * ratio;
       }

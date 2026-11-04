@@ -1,3 +1,5 @@
+import { mapColors } from "@/styles/mapColors";
+
 // naming convention: file is plural, export is singular.
 // import runs into ts type problems when they're the same (unconfirmed but suspected)
 
@@ -8,7 +10,7 @@ export const elevatorToComplexHighlightProps = (elevatorId: string | number) => 
   "source-layer": "elevator_to_complex_line_connect",
   "filter": ["==", ["get", "elevator_no"], elevatorId] as any,
   "paint": {
-    "line-color": "#de91cd",
+    "line-color": mapColors.elevatorHighlightLine,
     "line-width": 6,
     "line-opacity": 0.8,
     "line-blur": 3

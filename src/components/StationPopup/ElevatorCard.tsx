@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { MapPin, ArrowUpRight } from "lucide-react";
 
-import { InServicePill, OutOfServicePill, AccessTipBadge, OutagePlannedBadge, MaintenanceBadge, RedundantBadge } from "./StatusBadges";
+import { ElevatorStatusMark, InServicePill, OutOfServicePill, AccessTipBadge, OutagePlannedBadge, MaintenanceBadge, RedundantBadge } from "./StatusBadges";
 import { ROW_PRESS, EXPAND_EASE } from "@/lib/interaction";
 import { AccessTipNote, PlannedOutageNotes, ElevatorFooter } from "./ElevatorNotes";
 import { LineBullets } from "@/components/LineBullets/LineBullets";
@@ -115,17 +115,21 @@ const ElevatorCard: React.FC<{
     return `https://www.google.com/maps/dir/?api=1&origin=${userLocation[1]},${userLocation[0]}&destination=${elevator.coordinates[1]},${elevator.coordinates[0]}&travelmode=walking`;
   })();
 
-  // Same pills as the station summary: quiet teal when it works, solid red when it doesn't
-  const status = isOut && !isRamp ? (
+  // With a photo, status is a mark on the photo: a check when it works, an alert when it doesn't.
+  // Without one it's a pill. Screen readers get the words either way.
+  const showsOut = isOut && !isRamp;
+  const hasPhoto = !!elevator.imageURL;
+  const inServiceLabel = isRamp ? "Always in service" : "In service";
+  const status = showsOut ? (
     <>
-      <span className="flex items-center gap-1">
-        <OutOfServicePill />
-        {toBool(elevator.isRedundant) && <RedundantBadge />}
-      </span>
+      {hasPhoto ? <span className="sr-only">Out of service</span> : <OutOfServicePill />}
+      {toBool(elevator.isRedundant) && <RedundantBadge />}
       {eta && <span className="text-footnote text-status-out-foreground">Back {eta}</span>}
     </>
+  ) : hasPhoto ? (
+    <span className="sr-only">{inServiceLabel}</span>
   ) : (
-    <InServicePill label={isRamp ? "Always in service" : "In service"} />
+    <InServicePill label={inServiceLabel} />
   );
 
   return (
@@ -146,7 +150,7 @@ const ElevatorCard: React.FC<{
           aria-expanded={isOpen}
           aria-controls={detailsId}
           className={cn(
-            "flex w-full min-w-0 cursor-pointer items-stretch py-3 pl-4 text-left",
+            "flex w-full min-w-0 cursor-pointer items-stretch py-3 pl-4 text-left focus-visible:[outline-offset:-2px]",
             ROW_PRESS,
             // Room for the thumbnail while it's showing; snaps (not animated) so text reflows once
             elevator.imageURL && !isOpen ? "min-h-[104px] pr-[116px]" : "pr-4",
@@ -178,22 +182,29 @@ const ElevatorCard: React.FC<{
             <span className="flex flex-col gap-1">
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 {status}
-                {elevator.access_note && (
+                {/* Open rows show the full tip and outage notes right below, so these badges would only repeat them */}
+                {elevator.access_note && !isOpen && (
                   <AccessTipBadge
-                    onClick={isOpen ? undefined : (e) => { e.stopPropagation(); onToggle(true); }}
-                    aria-label={isOpen ? undefined : "Show access tip"}
+                    onClick={(e) => { e.stopPropagation(); onToggle(true); }}
+                    aria-label="Show access tip"
                   />
                 )}
                 {/* A maintenance label means the upcoming outage is today/tonight/tomorrow — the
                     maintenance badge already says that, so it replaces the generic outage badge */}
-                {upcomingOutages.length > 0 && !elevator.maintenanceLabel && (
+                {upcomingOutages.length > 0 && !elevator.maintenanceLabel && !isOpen && (
                   <OutagePlannedBadge
                     isLongTerm={hasLongTermOutage}
-                    onClick={isOpen ? undefined : (e) => { e.stopPropagation(); onToggle(true); }}
-                    aria-label={isOpen ? undefined : "Show planned outage"}
+                    onClick={(e) => { e.stopPropagation(); onToggle(true); }}
+                    aria-label="Show planned outage"
                   />
                 )}
-                {elevator.maintenanceLabel && <MaintenanceBadge when={elevator.maintenanceLabel} />}
+                {elevator.maintenanceLabel && !(isOpen && upcomingOutages.length > 0) && (
+                  <MaintenanceBadge
+                    when={elevator.maintenanceLabel}
+                    onClick={isOpen ? undefined : (e) => { e.stopPropagation(); onToggle(true); }}
+                    aria-label={isOpen ? undefined : `Show maintenance ${elevator.maintenanceLabel}`}
+                  />
+                )}
               </span>
 
               {elevator.ada === "0" && (
@@ -205,8 +216,8 @@ const ElevatorCard: React.FC<{
           </span>
         </div>
 
-        {/* A 104px square on every row, flush to the top and right edges, photo cropped to fill. Rows
-            are at least that tall, so one-line rows grow to meet it. Opening the row fades it out as
+        {/* 104px wide and the full height of the row, flush to its right edge, photo cropped to fill. Rows
+            are at least 104px tall, so one-line rows grow to a square. Opening the row fades it out as
             the full photo grows in below; only opacity and transform animate */}
         {elevator.imageURL && (
           <button
@@ -217,13 +228,14 @@ const ElevatorCard: React.FC<{
             tabIndex={isOpen ? -1 : undefined}
             aria-hidden={isOpen || undefined}
             className={cn(
-              "absolute right-0 top-0 size-[104px] origin-top-right overflow-hidden bg-muted transition-[opacity,transform] motion-reduce:transition-none",
+              "absolute inset-y-0 right-0 w-[104px] origin-top-right overflow-hidden focus-visible:[outline-offset:-2px] bg-muted transition-[opacity,transform] motion-reduce:transition-none",
               EXPAND_EASE,
               isOpen ? "pointer-events-none scale-90 opacity-0" : "scale-100 opacity-100",
-              "after:absolute after:inset-0 after:transition-colors after:duration-150 hover:after:bg-black/10 active:after:bg-black/20",
+              "after:absolute after:inset-0 after:transition-colors after:duration-150 hover:after:bg-foreground/10 active:after:bg-foreground/20",
             )}
           >
             <img src={elevator.imageURL} alt="" className="size-full object-cover" />
+            <ElevatorStatusMark isOut={showsOut} className="right-2 top-2" />
           </button>
         )}
       </div>
@@ -250,8 +262,9 @@ const ElevatorCard: React.FC<{
           <PlannedOutageNotes outages={upcomingOutages} maintenanceLabel={elevator.maintenanceLabel} />
 
           {elevator.imageURL && (
-            <div className="relative overflow-hidden rounded-lg bg-muted">
+            <div className="relative overflow-hidden rounded-[8px] bg-muted">
               <img src={elevator.imageURL} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
+              <ElevatorStatusMark isOut={showsOut} className="right-3 top-3" />
               {isStreet && elevator.coordinates && (
                 <button
                   ref={flyButtonRef}
@@ -267,7 +280,7 @@ const ElevatorCard: React.FC<{
                     setActiveFlyButton((current) => (current === elevator.elevatorno ? null : current));
                   }}
                   aria-pressed={isActive}
-                  className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 py-1.5 pl-2.5 pr-3 text-footnote font-semibold text-foreground shadow-[0_1px_2px_oklch(0_0_0/0.12),0_2px_8px_oklch(0_0_0/0.12)] transition-colors hover:bg-white active:bg-white/80"
+                  className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-background/95 before:absolute before:-inset-y-1.5 before:inset-x-0 py-1.5 pl-2.5 pr-3 text-footnote font-semibold text-foreground shadow-on-photo transition-colors hover:bg-background active:bg-background/80"
                 >
                   <MapPin className="size-3.5" aria-hidden="true" />
                   {isActive ? "Showing on map" : "See on map"}
@@ -285,7 +298,7 @@ const ElevatorCard: React.FC<{
               href={walkingLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex w-fit items-center gap-1 text-subhead font-medium underline underline-offset-2 hover:text-muted-foreground"
+              className="inline-flex min-h-11 w-fit items-center gap-1 text-subhead font-medium underline underline-offset-2 hover:text-muted-foreground"
             >
               Walking directions
               <ArrowUpRight className="size-3.5" aria-hidden="true" />
