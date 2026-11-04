@@ -405,26 +405,34 @@ div#__next > div {
   z-index: var(--z-index-mapbox-bottom-right); /* keep it behind popup */
 }
 
-/* Logo and attribution stay put in the map's bottom-left corner: on mobile, just above the
-   collapsed sheet, so a raised sheet covers them; on desktop, the screen corner with the controls'
-   own margins making up 16px gaps. */
+/* Mapbox's logo and attribution must stay visible whenever the map shows. On mobile they ride just
+   above the sheet with the same slide, in a row so they fit the strip of map a full-height sheet
+   leaves, and above the alert banner there. On desktop they hold the screen's bottom-left corner,
+   under the panel, with the controls' own margins making up 16px gaps. */
 .mapboxgl-ctrl-bottom-left {
-  bottom: calc(var(--sheet-peek) + 8px) !important;
+  bottom: 8px !important;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  transform: translateY(calc(-1 * var(--sheet-h, var(--sheet-peek))));
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+  z-index: var(--z-index-map-controls);
+}
+
+/* Expanded, the attribution would push the logo under the map controls, so they stack */
+.mapboxgl-ctrl-bottom-left:has(.mapboxgl-compact-show) {
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 @media (min-width: 768px) {
   .mapboxgl-ctrl-bottom-left {
     left: 10px !important;
     bottom: 10px !important;
+    flex-direction: column;
+    align-items: flex-start;
+    transform: none;
   }
-}
-
-/* Compact attribution ("i") button stacked above the logo, matching Mapbox's own DOM
-   order (attribution control added before the logo) */
-.mapboxgl-ctrl-bottom-left {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
 }
 
 /* Style the "i" icon to match the logo's look. It's already black (grayscale(1) was a
@@ -443,6 +451,18 @@ div#__next > div {
 .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib.mapboxgl-compact {
   margin-top: 0px;
   margin-left: 5px;
+}
+
+/* Mobile's row: the logo image overhangs its box by 4px, so this lines the icon up with its center */
+@media (max-width: 767px) {
+  .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib.mapboxgl-compact:not(.mapboxgl-compact-show) {
+    margin-top: 4px;
+  }
+
+  /* 6px between the icon and the logo */
+  .mapboxgl-ctrl-bottom-left:not(:has(.mapboxgl-compact-show)) .mapboxgl-ctrl:not(.mapboxgl-ctrl-attrib) {
+    margin-left: 0;
+  }
 }
 
 .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib.mapboxgl-compact-show .mapboxgl-ctrl-attrib-inner {

@@ -230,6 +230,31 @@ function Group({
 }
 
 // A page pushed on top of the station list, with a back button to return to it.
+// Marks the top edge of a scroll area once content has slid under the header above it. Scroll
+// events don't bubble, so this catches them on the way down; the height check skips sideways
+// scrollers inside, like the distance chips.
+function ScrollEdge({ children }: { children: React.ReactNode }) {
+  const [isScrolled, setIsScrolled] = useState(false);
+  return (
+    <div
+      className="relative flex min-h-0 flex-1 flex-col"
+      onScrollCapture={(e) => {
+        const el = e.target as HTMLElement;
+        if (el.scrollHeight > el.clientHeight) setIsScrolled(el.scrollTop > 0);
+      }}
+    >
+      {children}
+      <div
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute inset-x-0 top-0 z-10 h-2 border-t border-border bg-gradient-to-b from-foreground/[0.06] to-transparent transition-opacity duration-150 motion-reduce:transition-none",
+          isScrolled ? "opacity-100" : "opacity-0",
+        )}
+      />
+    </div>
+  );
+}
+
 // isDesktop skips vaul's DrawerTitle (it needs a <Drawer> context that the desktop
 // panel, rendered outside one, doesn't have) in favor of a plain heading.
 function SubPage({
@@ -238,6 +263,7 @@ function SubPage({
   scrollable,
   endPadding,
   isDesktop,
+  hasScrollEdge = false,
   children,
 }: {
   label: string;
@@ -245,8 +271,21 @@ function SubPage({
   scrollable: boolean;
   endPadding: React.CSSProperties;
   isDesktop: boolean;
+  // Station pages leave this off: their pinned title marks the edge itself
+  hasScrollEdge?: boolean;
   children: React.ReactNode;
 }) {
+  const scroller = (
+    <div
+      className={cn(
+        "min-h-0 flex-1 overscroll-contain",
+        scrollable ? "overflow-y-auto" : "overflow-hidden",
+      )}
+      style={endPadding}
+    >
+      {children}
+    </div>
+  );
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {isDesktop ? <h2 className="sr-only">{label}</h2> : <DrawerTitle className="sr-only">{label}</DrawerTitle>}
@@ -270,15 +309,7 @@ function SubPage({
           <X className="size-5" />
         </Button>
       </div>
-      <div
-        className={cn(
-          "min-h-0 flex-1 overscroll-contain",
-          scrollable ? "overflow-y-auto" : "overflow-hidden",
-        )}
-        style={endPadding}
-      >
-        {children}
-      </div>
+      {hasScrollEdge ? <ScrollEdge>{scroller}</ScrollEdge> : scroller}
     </div>
   );
 }
@@ -378,6 +409,8 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
     const height =
       snap === SNAP_FULL ? `${SNAP_HALF * 100}dvh` : typeof snap === "number" ? `${snap * 100}dvh` : snap ?? SNAP_PEEK;
     document.documentElement.style.setProperty("--bottom-popup-h", height);
+    // The Mapbox logo has to stay visible, so unlike the controls it follows the sheet all the way up
+    document.documentElement.style.setProperty("--sheet-h", typeof snap === "number" ? `${snap * 100}dvh` : snap ?? SNAP_PEEK);
   }, [snap]);
 
   const openLegend = () => {
@@ -514,7 +547,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
           <AdoptedNode node={page} />
         </SubPage>
       ) : isLegendOpen ? (
-        <SubPage label="Legend" onBack={closeLegend} scrollable={isScrollable} endPadding={endPadding} isDesktop={isDesktop}>
+        <SubPage label="Legend" onBack={closeLegend} scrollable={isScrollable} endPadding={endPadding} isDesktop={isDesktop} hasScrollEdge>
           <LegendPage
             numOutElevators={numOutElevators}
             totalElevators={totalElevators}
@@ -595,6 +628,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                 </div>
               </div>
 
+              <ScrollEdge>
               <CommandList
                 className={cn(
                   "max-h-none flex-1 overscroll-contain",
@@ -798,6 +832,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                   </>
                 )}
               </CommandList>
+              </ScrollEdge>
             </Command>
           )}
     </>
