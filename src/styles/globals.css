@@ -550,11 +550,14 @@ div#__next > div {
     --border: var(--gray-300);
     --input: var(--gray-300);
     --ring: var(--gray-900);
+    /* What hover and press tints are made of; colored surfaces swap in their own hue below */
+    --tint: var(--foreground);
 
     /* Elevation, all tinted with the same cool color */
     --shadow-color: var(--gray-950);
     /* Raised surfaces: a ring in the divider color for the edge plus a soft drop */
-    --shadow-raised: 0 0 0 1px oklch(var(--border)), 0 1px 2px oklch(var(--shadow-color) / 0.04), 0 2px 6px oklch(var(--shadow-color) / 0.03);
+    --shadow-drop: 0 1px 2px oklch(var(--shadow-color) / 0.04), 0 2px 6px oklch(var(--shadow-color) / 0.03);
+    --shadow-raised: 0 0 0 1px oklch(var(--border)), var(--shadow-drop);
     --shadow-floating: 0 1px 2px oklch(var(--shadow-color) / 0.08), 0 8px 24px oklch(var(--shadow-color) / 0.16);
     --shadow-sheet: 0 -1px 0 oklch(var(--shadow-color) / 0.04), 0 -8px 24px oklch(var(--shadow-color) / 0.12);
     --shadow-overlay: 0 1px 2px oklch(var(--shadow-color) / 0.08), 0 4px 12px oklch(var(--shadow-color) / 0.1);
@@ -593,6 +596,31 @@ div#__next > div {
     --bottom-popup-h: var(--sheet-peek);
   }
 
+  /* Colored surfaces re-point the tokens their contents use, so nothing on them is a cool gray that
+     turns muddy against the color: hover tints, edges and quiet text all take the surface's hue.
+     Text is a little darker than its 7:1 minimum so it still passes under the hover and press tints. */
+  .surface-out {
+    --tint: var(--status-out);
+    --border: 0.87 0.06 25;
+    --muted-foreground: 0.39 0.04 25;
+    --status-out-foreground: 0.4 0.16 27;
+  }
+
+  /* One colored surface at a time: anything tinted inside a pink row (teal pills, amber or pink
+     outage notes, lilac access tips) sits on white here and keeps its color in its text or icon */
+  .surface-out * {
+    --status-ok-muted: var(--background);
+    --status-partial-muted: var(--background);
+    --status-out-muted: var(--background);
+    --access-tip: var(--background);
+  }
+
+  .surface-partial {
+    --tint: var(--status-partial-foreground);
+    --border: 0.87 0.06 85;
+    --muted-foreground: 0.42 0.04 70;
+  }
+
   /* The same ramp, read from the other end */
   .dark {
     --background: var(--gray-950);
@@ -616,7 +644,9 @@ div#__next > div {
     --ring: var(--gray-400);
     --shadow-color: 0 0 0;
     /* Drops vanish on a dark background, so the ring carries the edge */
-    --shadow-raised: 0 0 0 1px oklch(var(--border)), 0 1px 2px oklch(var(--shadow-color) / 0.3);
+    --shadow-drop: 0 1px 2px oklch(var(--shadow-color) / 0.3);
+    --shadow-raised: 0 0 0 1px oklch(var(--border)), var(--shadow-drop);
+    --tint: var(--foreground);
     --access-tip: 0.3 0.06 322;
     --access-tip-foreground: 0.85 0.09 322;
     --chart-1: 0.49 0.22 264;
@@ -634,6 +664,24 @@ div#__next > div {
     --status-out-foreground: 0.75 0.14 25;
     --status-out-muted: 0.3 0.07 25;
     --status-out-on: var(--gray-0);
+  }
+
+  .dark .surface-out {
+    --border: 0.4 0.07 25;
+    --muted-foreground: var(--gray-400);
+    --status-out-foreground: 0.75 0.14 25;
+  }
+
+  .dark .surface-out * {
+    --status-ok-muted: var(--card);
+    --status-partial-muted: var(--card);
+    --status-out-muted: var(--card);
+    --access-tip: var(--card);
+  }
+
+  .dark .surface-partial {
+    --border: 0.42 0.06 75;
+    --muted-foreground: var(--gray-400);
   }
 }
 

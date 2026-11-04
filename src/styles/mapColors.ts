@@ -15,7 +15,6 @@ export const mapColors = {
   statusPartial: "#E39B0B",
   statusPartialDot: "#F2A900",
   statusOut: "#D33A2C",
-  statusOutBadge: "#B3221B",
 
   stationGlow: "#2bb7ce",
   elevatorHighlight: "#D46BB8",

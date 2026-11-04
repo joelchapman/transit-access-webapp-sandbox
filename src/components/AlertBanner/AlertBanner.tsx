@@ -11,8 +11,8 @@ const DISMISSED_KEY = "dismissed-system-alerts";
 const ALERT_TONES = {
   success: { glyph: "check", surface: "bg-status-ok-muted", icon: "text-status-ok" },
   info: { glyph: "info", surface: "bg-background", icon: "text-muted-foreground" },
-  warning: { glyph: "alert", surface: "bg-status-partial-muted", icon: "text-status-partial" },
-  error: { glyph: "alert", surface: "bg-status-out-muted", icon: "text-status-out" },
+  warning: { glyph: "alert", surface: "surface-partial bg-status-partial-muted", icon: "text-status-partial" },
+  error: { glyph: "alert", surface: "surface-out bg-status-out-muted", icon: "text-status-out" },
 } as const;
 
 function readDismissed(): string[] {

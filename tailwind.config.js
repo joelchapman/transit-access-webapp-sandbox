@@ -63,11 +63,11 @@ module.exports = {
   				DEFAULT: 'oklch(var(--access-tip) / <alpha-value>)',
   				foreground: 'oklch(var(--access-tip-foreground) / <alpha-value>)'
   			},
-  			// Tints of the text color, so they read on any surface: quiet fills and hover/press feedback
-  			'fill-subtle': 'oklch(var(--foreground) / 0.06)',
-  			'state-hover': 'oklch(var(--foreground) / 0.04)',
-  			'state-press': 'oklch(var(--foreground) / 0.08)',
-  			'state-press-strong': 'oklch(var(--foreground) / 0.12)',
+  			// Tints of the surface's own hue (--tint), so feedback on a colored surface stays that color
+  			'fill-subtle': 'oklch(var(--tint) / 0.06)',
+  			'state-hover': 'oklch(var(--tint) / 0.04)',
+  			'state-press': 'oklch(var(--tint) / 0.08)',
+  			'state-press-strong': 'oklch(var(--tint) / 0.12)',
   			handle: 'oklch(var(--foreground) / 0.2)',
   			background: 'oklch(var(--background) / <alpha-value>)',
   			foreground: 'oklch(var(--foreground) / <alpha-value>)',

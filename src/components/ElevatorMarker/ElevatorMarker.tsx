@@ -1,10 +1,10 @@
 import React from "react";
-import { MoveVertical, OctagonX, Wrench } from "lucide-react";
+import { MoveVertical, Wrench } from "lucide-react";
 import { mapColors } from "@/styles/mapColors";
 
 // A street elevator on the map. Stations are colored circles; elevators are neutral rounded squares,
-// so the two never read as the same thing. Status uses the same badge language as stations: no badge
-// when it works, Lucide's octagon-x when it's out. A planned outage is a separate wrench badge
+// so the two never read as the same thing. No badge when it works, a solid red dot in the corner
+// when it's out. A planned outage is a separate wrench badge
 // (ElevatorPlannedBadge) that sits on the opposite corner, so it can show alongside "out".
 // Icons are Lucide's; these components only wrap them. stationMarkerImages.tsx rasterizes them for
 // the map, and the legend renders them directly.
@@ -34,7 +34,7 @@ export function ElevatorMarker({ state, size = ELEVATOR_MARKER_SIZE }: { state: 
       {state === "out" && (
         <>
           <circle cx={27.5} cy={6.5} r={6.5} fill={mapColors.surface} />
-          <OctagonX x={27.5 - 5} y={6.5 - 5} width={10} height={10} color={mapColors.statusOutBadge} strokeWidth={2.75} />
+          <circle cx={27.5} cy={6.5} r={4.75} fill={mapColors.statusOut} />
         </>
       )}
     </svg>
@@ -61,7 +61,7 @@ export function ElevatorMarkerInverted({ state, size = ELEVATOR_MARKER_SIZE }: {
       {state === "out" && (
         <>
           <circle cx={27.5} cy={6.5} r={6.5} fill={mapColors.surface} />
-          <OctagonX x={27.5 - 5} y={6.5 - 5} width={10} height={10} color={mapColors.statusOutBadge} strokeWidth={2.75} />
+          <circle cx={27.5} cy={6.5} r={4.75} fill={mapColors.statusOut} />
         </>
       )}
     </svg>

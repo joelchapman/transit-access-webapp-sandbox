@@ -19,7 +19,7 @@ export const currentOutageProps = {
   ],
   type: "symbol", // Using symbol type for icon display
   layout: {
-    // One marker per street elevator (see ElevatorMarker): a red octagon badge when it's out
+    // One marker per street elevator (see ElevatorMarker): a red dot in the corner when it's out
     "icon-image": ["case", ["==", ["get", "isBroken"], true], "elevator-marker-out", "elevator-marker-ok"],
     "icon-size": ["step", ["zoom"], 0, elevatorView - 1, 0.95],
     "icon-anchor": "center",

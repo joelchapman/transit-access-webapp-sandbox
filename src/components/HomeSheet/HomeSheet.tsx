@@ -142,7 +142,7 @@ function OutageBanner({
   if (status === "ok") return null;
   const isOut = status === "out";
   return (
-    <div className={cn("mx-3 mb-3 flex flex-col gap-1.5 rounded-[8px] px-3 py-2", isOut ? "bg-status-out-muted" : "bg-status-partial-muted")}>
+    <div className={cn("mx-3 mb-3 flex flex-col gap-1.5 rounded-[8px] px-3 py-2", isOut ? "surface-out bg-status-out-muted" : "surface-partial bg-status-partial-muted")}>
       <p
         className={cn(
           "flex items-center justify-between gap-1.5 text-footnote font-semibold",

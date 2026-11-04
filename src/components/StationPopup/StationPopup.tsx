@@ -323,7 +323,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
                 <div
                   key={index}
                   role="status"
-                  className="flex items-start gap-3 rounded-xl bg-status-partial-muted px-4 py-3"
+                  className="surface-partial flex items-start gap-3 rounded-xl bg-status-partial-muted px-4 py-3"
                 >
                   <StatusIcon glyph="alert" className="mt-0.5 size-[18px] text-status-partial" />
                   <p className="min-w-0 text-subhead text-pretty">
@@ -395,7 +395,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
               <div
                 key={e.elevatorno ?? `st-${idx}`}
                 className={`${styles.cardWrapperStreet} ${
-                  e.isOut ? styles.colorBadFaint : ""
+                  e.isOut ? `surface-out ${styles.colorBadFaint}` : ""
                 }`}
               >
                 <ElevatorCard
@@ -434,7 +434,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
               <div
                 key={e.elevatorno ?? `in-${idx}`}
                 className={`${styles.cardWrapperPlatform} ${
-                  e.isOut ? styles.colorBadFaint : ""
+                  e.isOut ? `surface-out ${styles.colorBadFaint}` : ""
                 }`}
               >
                 <ElevatorCard
