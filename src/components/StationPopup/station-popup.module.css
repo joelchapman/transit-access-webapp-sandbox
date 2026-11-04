@@ -216,7 +216,7 @@
 .elevatorGroup {
   margin: 0 1rem;
   overflow: hidden;
-  border: 1px solid oklch(var(--border));
+  box-shadow: var(--shadow-raised);
   border-radius: calc(var(--radius) + 4px);
 }
 
@@ -1051,4 +1051,15 @@
   border: 1px solid #d8bc86;
   padding: 0rem 0.4rem;
   border-radius: 4px;
+}
+
+/* Desktop side panel: its scroll area supplies the 16px under the last card, matching the sides */
+@media (min-width: 768px) {
+  .popupContent {
+    padding-bottom: 0;
+  }
+
+  .elevatorCard {
+    margin-bottom: 0;
+  }
 }

@@ -123,6 +123,7 @@ const MtaMap = () => {
   const showCenterPinRef = useRef(false);
   const [pinDrop, setPinDrop] = useState(false);
   const [isZoomedOut, setIsZoomedOut] = useState(false);
+  const [isMapManipulated, setIsMapManipulated] = useState(false);
   const isZoomedOutRef = useRef(false);
   // Hides the pin right when "zoom out" is tapped (its old position doesn't apply to the
   // birdseye view); dragging or zooming back in clears this and the pin reappears
@@ -567,6 +568,21 @@ const MtaMap = () => {
         );
       });
 
+      // Direct manipulation only: camera moves from code (flyTo and friends) carry no originalEvent.
+      // Neither does Mapbox's wheel zoom, so that one is checked for separately.
+      const activeGestures = new Set<string>();
+      ["drag", "zoom", "rotate", "pitch"].forEach((gesture) => {
+        mapRef.current.on(`${gesture}start`, (e) => {
+          if (!e.originalEvent && !mapRef.current.scrollZoom.isActive()) return;
+          activeGestures.add(gesture);
+          setIsMapManipulated(true);
+        });
+        mapRef.current.on(`${gesture}end`, () => {
+          activeGestures.delete(gesture);
+          setIsMapManipulated(activeGestures.size > 0);
+        });
+      });
+
       mapRef.current.on("dragstart", () => {
         showCenterPinRef.current = true;
         setShowCenterPin(true);
@@ -859,7 +875,7 @@ const MtaMap = () => {
         </div>
       )}
 
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-[996] mx-auto flex max-w-lg flex-col gap-2 px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-[996] mx-auto flex max-w-lg md:left-[412px] flex-col gap-2 px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <AlertBanner alerts={systemAlerts ?? []} />
       </div>
 
@@ -977,7 +993,7 @@ const MtaMap = () => {
             // (see the "dragstart"/"dragend" handlers above)
           }}
         >
-          {isZoomedOut ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+          {isZoomedOut ? <Minimize2 className="size-5" /> : <Maximize2 className="size-5" />}
         </button>
       </div>
 
@@ -989,6 +1005,7 @@ const MtaMap = () => {
         overrideLocation={mapCenterLocation}
         locateSignal={locateSignal}
         zoomOutSignal={zoomOutSignal}
+        isMapManipulated={isMapManipulated}
         elevatorData={elevatorDataState}
         upcomingElevatorData={upcomingRawData}
         numOutElevators={elevatorStats.numOutElevators}
@@ -1006,8 +1023,7 @@ const MtaMap = () => {
         {show3DToggle && zoomLevel >= BUILDING_EXTRUSION_MIN_ZOOM && (
           <button
             type="button"
-            className={`show-3d-button-wrapper map-zoom-out-btn text-[11px] font-bold${buildings3DOn ? " map-zoom-out-btn--active" : ""}`}
-            style={{ top: "max(0.75rem, env(safe-area-inset-top))" }}
+            className={`show-3d-button-wrapper map-zoom-out-btn text-footnote font-bold${buildings3DOn ? " map-zoom-out-btn--active" : ""}`}
             aria-pressed={buildings3DOn}
             aria-label={buildings3DOn ? "Hide 3D buildings" : "Show 3D buildings"}
             title={buildings3DOn ? "Hide 3D buildings" : "Show 3D buildings"}

@@ -25,16 +25,17 @@
   --desktop-shift-top: -30px;
 
   /* Active/selected color for map control buttons */
-  --button-select-color: #33b5e5;
+  --button-select-color: #1991bd;
   /* Color for the map-center pin and inline distance-source pin */
   --map-pin-color: #fb2828b7;
 
-  /* Desktop nav-control row (geolocate, map-reset, compass, 3D toggle): one place to
-     move the whole row. --nav-ctrl-left aligns the first control with the panel's
-     left edge; --nav-ctrl-gap is button width (29px) + spacing (8px) between controls. */
-  --nav-ctrl-top: 50px;
-  --nav-ctrl-left: 40px;
-  --nav-ctrl-gap: 37px;
+  /* Map control stack on the right edge. Buttons are 44px tap areas with a 40px visible circle,
+     so these put the circles 16px from the screen edges and 8px apart. */
+  --map-ctrl-right: 14px;
+  --map-ctrl-bottom: 14px;
+  --map-ctrl-step: 48px;
+  /* Mobile: ride above the sheet. Desktop's panel is on the left, so nothing to clear. */
+  --map-ctrl-lift: var(--bottom-popup-h, 0px);
 }
 
 html,
@@ -249,97 +250,149 @@ div#__next > div {
   display: block;
 }
 
-/*
- * Bottom-right stack (bottom → top): geolocate (Mapbox) → map-reset → compass (Mapbox, fixed)
- * --bottom-popup-h: 3rem (minimized) | 40dvh (collapsed, default)
- * Heights: panel(h) + gap(8) + geolocate(29) + gap(8) = h+45 for map-reset
- *          h+45 + map-reset(29) + gap(8) = h+82 for compass
- */
-.map-zoom-out {
-  position: fixed;
-  right: 10px;
-  bottom: 55px;
-  transform: translateY(calc(-1 * var(--bottom-popup-h, 40dvh)));
-  transition: transform 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  z-index: var(--z-index-map-controls);
-}
-
 @media (min-width: 768px) {
-  /* Desktop: horizontal row above the panel — geolocate → map-reset → compass → 3D toggle */
-  .map-zoom-out {
-    top: var(--nav-ctrl-top);
-    bottom: auto;
-    left: calc(var(--nav-ctrl-left) + var(--nav-ctrl-gap));
-    right: auto;
-    flex-direction: row;
-    transform: none;
-    transition: top 0.3s ease;
+  :root {
+    --map-ctrl-lift: 0px;
   }
 }
 
-.map-zoom-out-btn {
+/*
+ * Control stack, bottom → top: geolocate (Mapbox) → zoom-out → compass (Mapbox) → 3D toggle.
+ * They live in different parents, so each is fixed to its own slot in the stack.
+ */
+.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group,
+.map-zoom-out,
+.show-3d-button-wrapper {
+  position: fixed;
+  right: var(--map-ctrl-right);
+  bottom: calc(var(--map-ctrl-bottom) + var(--map-ctrl-step) * var(--map-ctrl-slot));
+  margin: 0 !important;
+  transform: translateY(calc(-1 * var(--map-ctrl-lift)));
+  transition: transform 0.3s ease;
+  z-index: var(--z-index-map-controls);
+}
+.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate) { --map-ctrl-slot: 0; }
+.map-zoom-out { --map-ctrl-slot: 1; }
+.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-compass) { --map-ctrl-slot: 2; }
+.show-3d-button-wrapper { --map-ctrl-slot: 3; }
+
+.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.map-zoom-out-btn,
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate,
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-compass {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 29px;
-  height: 29px;
-  background-color: #fefefe;
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
+  width: 44px;
+  height: 44px;
+  background: transparent !important;
   border: none;
-  border-radius: 0.4rem;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
-  color: #303030;
+  border-radius: 9999px !important;
+  color: oklch(var(--foreground));
   cursor: pointer;
 }
 
-.map-zoom-out-btn:hover {
-  background-color: #f0f0f0;
+/* The visible 40px circle, behind the icon */
+.map-zoom-out-btn::before,
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate::before,
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-compass::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  z-index: -1;
+  border-radius: 9999px;
+  background: oklch(var(--background));
+  box-shadow: var(--shadow-raised), 0 2px 8px oklch(0 0 0 / 0.1);
+  transition: background-color 0.15s ease;
+}
+
+.map-zoom-out-btn:hover::before,
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate:hover::before,
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-compass:hover::before {
+  background: oklch(var(--muted));
+}
+
+.map-zoom-out-btn:active::before,
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate:active::before,
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-compass:active::before {
+  background: oklch(var(--accent));
 }
 
 .map-zoom-out-btn--active {
   color: var(--button-select-color);
 }
 
+/* The 3D toggle is both a stack slot and a button: keep the slot's fixed position */
+.show-3d-button-wrapper.map-zoom-out-btn {
+  position: fixed;
+}
+
+/* Mapbox draws its icons as background images and builds these buttons itself, so Lucide's shapes
+   go in as masks over currentColor: Locate, LocateFixed, LocateOff and Navigation2. Mapbox still
+   handles the states, the waiting spin and the compass rotation. */
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-compass .mapboxgl-ctrl-icon {
+  background: currentColor !important;
+  opacity: 1 !important;
+  -webkit-mask: var(--map-ctrl-icon) center / 20px no-repeat;
+  mask: var(--map-ctrl-icon) center / 20px no-repeat;
+}
+
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate {
+  --map-ctrl-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='2' x2='5' y1='12' y2='12'/%3E%3Cline x1='19' x2='22' y1='12' y2='12'/%3E%3Cline x1='12' x2='12' y1='2' y2='5'/%3E%3Cline x1='12' x2='12' y1='19' y2='22'/%3E%3Ccircle cx='12' cy='12' r='7'/%3E%3C/svg%3E");
+}
+
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate.mapboxgl-ctrl-geolocate-active,
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate.mapboxgl-ctrl-geolocate-waiting {
+  --map-ctrl-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='2' x2='5' y1='12' y2='12'/%3E%3Cline x1='19' x2='22' y1='12' y2='12'/%3E%3Cline x1='12' x2='12' y1='2' y2='5'/%3E%3Cline x1='12' x2='12' y1='19' y2='22'/%3E%3Ccircle cx='12' cy='12' r='7'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
+  color: var(--button-select-color);
+}
+
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate.mapboxgl-ctrl-geolocate-background {
+  color: var(--button-select-color);
+}
+
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate:disabled,
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate.mapboxgl-ctrl-geolocate-active-error,
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-geolocate.mapboxgl-ctrl-geolocate-background-error {
+  --map-ctrl-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19v3'/%3E%3Cpath d='M12 2v3'/%3E%3Cpath d='M18.89 13.24a7 7 0 0 0-8.13-8.13'/%3E%3Cpath d='M19 12h3'/%3E%3Cpath d='M2 12h3'/%3E%3Cpath d='m2 2 20 20'/%3E%3Cpath d='M7.05 7.05a7 7 0 0 0 9.9 9.9'/%3E%3C/svg%3E");
+  color: oklch(var(--status-out));
+}
+
+.mapboxgl-ctrl-group button.mapboxgl-ctrl-compass {
+  --map-ctrl-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 19 21 12 17 5 21 12 2'/%3E%3C/svg%3E");
+}
+
+[data-bearing-manhattan="true"] .mapboxgl-ctrl-group button.mapboxgl-ctrl-compass {
+  color: var(--button-select-color);
+}
+
+/* Manhattan label, under the arrow. Always present so its color can transition. */
+.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-compass)::after {
+  content: "29°";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 5px;
+  text-align: center;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  line-height: 1;
+  color: transparent;
+  pointer-events: none;
+}
+[data-bearing-manhattan="true"] .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-compass)::after {
+  color: oklch(var(--status-ok-foreground));
+}
+
 .css-1i69s7c-MuiButtonBase-root-MuiIconButton-root {
   z-index: var(--z-index-map-controls);
-}
-
-
-.show-3d-button-wrapper {
-  /* Position only; the pill itself is styled in MtaMap.tsx */
-  position: absolute;
-  top: 65px;
-  z-index: var(--z-index-map-controls);
-}
-
-@media (max-width: 768px) {
-  /* Mobile: 4th slot in the vertical control stack, directly above the compass —
-     compass(82) + compass height(29) + gap(8) = 119. Overrides MtaMap.tsx's safe-area inline top. */
-  .show-3d-button-wrapper {
-    position: fixed !important;
-    top: auto !important;
-    /* 10px, not 0 — matches .map-zoom-out: Mapbox's compass control carries its own
-       10px right margin, so its visible icon sits 10px in from its container's edge */
-    right: 10px !important;
-    bottom: 130px !important;
-    transform: translateY(calc(-1 * var(--bottom-popup-h, 40dvh))) !important;
-    transition: transform 0.3s ease;
-  }
-}
-
-@media (min-width: 768px) {
-  /* Desktop: 4th slot in the nav-control row, overriding MtaMap.tsx's mobile safe-area inline top */
-  .show-3d-button-wrapper {
-    top: var(--nav-ctrl-top) !important;
-    left: calc(var(--nav-ctrl-left) + var(--nav-ctrl-gap) * 3) !important;
-    right: auto !important;
-    transform: none !important;
-  }
 }
 
 
@@ -352,62 +405,18 @@ div#__next > div {
   z-index: var(--z-index-mapbox-bottom-right); /* keep it behind popup */
 }
 
-/* Compass: pulled out of Mapbox ctrl flow, positioned independently above map-reset */
-.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-compass) {
-  position: fixed !important;
-  right: 0px;
-  bottom: 82px;
-  transform: translateY(calc(-1 * var(--bottom-popup-h, 40dvh)));
-  transition: transform 0.3s ease, opacity 0.5s ease 0s, visibility 0s 0s;
-  opacity: 1;
-  visibility: visible;
+/* Logo and attribution stay put in the map's bottom-left corner: on mobile, just above the
+   collapsed sheet, so a raised sheet covers them; on desktop, the screen corner with the controls'
+   own margins making up 16px gaps. */
+.mapboxgl-ctrl-bottom-left {
+  bottom: calc(var(--sheet-peek) + 8px) !important;
 }
 
 @media (min-width: 768px) {
-  .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-compass) {
-    top: var(--nav-ctrl-top);
-    bottom: auto;
-    left: calc(var(--nav-ctrl-left) + var(--nav-ctrl-gap) * 2);
-    right: auto;
-    transform: none;
-    transition: top 0.3s ease, opacity 0.5s ease 0s, visibility 0s 0s;
+  .mapboxgl-ctrl-bottom-left {
+    left: 10px !important;
+    bottom: 10px !important;
   }
-}
-
-/* Manhattan tilt: blue compass icon */
-[data-bearing-manhattan="true"] .mapboxgl-ctrl button.mapboxgl-ctrl-compass .mapboxgl-ctrl-icon {
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%2333b5e5' viewBox='0 0 29 29'%3E%3Cpath d='M10.5 14l4-8 4 8h-8z'/%3E%3Cpath d='M10.5 16l4 8 4-8h-8z' fill='%23b3e6f5'/%3E%3C/svg%3E") !important;
-}
-
-/* Manhattan label — always present so color can transition; invisible until bearing matches.
-   Sits inside the compass button's own top-left corner rather than floating above it, so it
-   doesn't eat into the gap the 3D toggle needs above the compass on mobile. */
-.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-compass)::after {
-  content: "29°";
-  position: absolute;
-  top: 2px;
-  right: 1px;
-  bottom: auto;
-  transform: none;
-  font-size: 0.5rem;
-  font-weight: 700;
-  line-height: 1;
-  color: transparent;
-  white-space: nowrap;
-  pointer-events: none;
-}
-[data-bearing-manhattan="true"] .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-compass)::after {
-  color: #1991bd;
-}
-
-/* Lift map controls and attribution above the collapsed home sheet.
-   Animates `bottom`, not `transform` — the compass is a position:fixed descendant of
-   .mapboxgl-ctrl-bottom-right, and a transform here would make this its containing block,
-   double-shifting the compass on top of its own translateY. */
-.mapboxgl-ctrl-bottom-right,
-.mapboxgl-ctrl-bottom-left {
-  bottom: calc(var(--bottom-popup-h) + 8px) !important;
-  transition: bottom 0.3s ease;
 }
 
 /* Compact attribution ("i") button stacked above the logo, matching Mapbox's own DOM
@@ -440,18 +449,6 @@ div#__next > div {
   white-space: normal;
 }
 
-@media (min-width: 768px) {
-  /* Desktop: geolocate sits at the left of the horizontal control row, aligned with the panel's left edge */
-  .mapboxgl-ctrl-bottom-right {
-    position: fixed !important;
-    top: var(--nav-ctrl-top) !important;
-    left: var(--nav-ctrl-left) !important;
-    bottom: auto !important;
-    right: auto !important;
-    transition: top 0.3s ease;
-  }
-}
-
 @layer base {
   /* Colors are OKLCH channels ("L C H"), consumed as oklch(var(--x) / alpha) */
   :root {
@@ -476,6 +473,8 @@ div#__next > div {
     --border: 0.91 0.004 270;
     --input: 0.9 0.005 270;
     --ring: 0.2 0.006 265;
+    /* Raised surfaces: a ring in the divider color for the edge plus a soft drop */
+    --shadow-raised: 0 0 0 1px oklch(var(--border)), 0 1px 2px oklch(0 0 0 / 0.035), 0 2px 6px oklch(0 0 0 / 0.025);
     --chart-1: 0.65 0.19 41;
     --chart-2: 0.6 0.1 185;
     --chart-3: 0.4 0.07 227;
@@ -521,6 +520,8 @@ div#__next > div {
     --border: 0.29 0.006 265;
     --input: 0.29 0.006 265;
     --ring: 0.85 0.005 265;
+    /* Drops vanish on a dark background, so the ring carries the edge */
+    --shadow-raised: 0 0 0 1px oklch(var(--border)), 0 1px 2px oklch(0 0 0 / 0.3);
     --chart-1: 0.49 0.22 264;
     --chart-2: 0.7 0.16 162;
     --chart-3: 0.77 0.17 65;

@@ -52,6 +52,27 @@ const LINE_COLORS: Record<string, string> = {
 const SUBWAY_WIDTH = ["interpolate", ["linear"], ["zoom"], 10, 1.5, 12, 2.25, 14, 3, 18, 3.75];
 const SUBWAY_CASING_WIDTH = ["interpolate", ["linear"], ["zoom"], 10, 2.5, 12, 3.5, 14, 4.5, 18, 5.5];
 
+// Where trunks share a corridor (Queens Blvd, 8th and 6th Av, Lexington and 7th Av in Brooklyn) their
+// tracks are only ~17m apart, so zoomed out the colors land on top of each other. Each trunk gets a
+// slot, and lines shift by slot × (line width + 1px) to run side by side with a white gap from the
+// casing. Slots follow which side each trunk's track actually sits on, so lines don't cross as the
+// offset fades out; from zoom 14 the real geometry keeps them apart on its own.
+const TRUNK_SLOT = [
+  "match", ["slice", ["get", "name"], 0, 1],
+  ["N", "Q", "R", "W", "S"], -1,
+  ["1", "2", "3"], -0.5,
+  ["4", "5", "6"], 0.5,
+  ["B", "D", "F", "M", "J", "Z", "G"], 1,
+  0,
+];
+const SUBWAY_OFFSET = [
+  "interpolate", ["linear"], ["zoom"],
+  10, ["*", TRUNK_SLOT, 2.5],
+  12, ["*", TRUNK_SLOT, 3.25],
+  13, ["*", TRUNK_SLOT, 3.6],
+  14, 0,
+];
+
 // Zoomed out, streets are white lines; at street zoom they become gray pavement between white sidewalks
 const STREET_FROM = 15;
 const STREET_TO = 16.5;
@@ -160,11 +181,16 @@ export function applyMapTheme<T>(source: T): T {
   }
   const lines = byId.get("mta-subwaylines-all");
   if (lines) {
-    paint("mta-subwaylines-all", { "line-width": SUBWAY_WIDTH, "line-opacity": 1 });
+    paint("mta-subwaylines-all", { "line-width": SUBWAY_WIDTH, "line-opacity": 1, "line-offset": SUBWAY_OFFSET });
     insertBefore("mta-subwaylines-all", {
       ...JSON.parse(JSON.stringify(lines)),
       id: "theme-subwaylines-casing",
-      paint: { "line-color": "#FFFFFF", "line-width": SUBWAY_CASING_WIDTH, "line-opacity": 1 },
+      paint: {
+        "line-color": "#FFFFFF",
+        "line-width": SUBWAY_CASING_WIDTH,
+        "line-opacity": 1,
+        "line-offset": SUBWAY_OFFSET,
+      },
     });
   }
   paint("mta-sir-lines", { "line-width": SUBWAY_WIDTH, "line-opacity": 1 });

@@ -7,6 +7,7 @@ module.exports = {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/lib/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
   	extend: {
@@ -28,6 +29,9 @@ module.exports = {
   			subhead: ['0.9375rem', { lineHeight: '1.4' }],
   			footnote: ['0.8125rem', { lineHeight: '1.35' }],
   			caption: ['0.75rem', { lineHeight: '1.3' }]
+  		},
+  		boxShadow: {
+  			raised: 'var(--shadow-raised)'
   		},
   		borderRadius: {
   			sheet: 'var(--radius-sheet)',

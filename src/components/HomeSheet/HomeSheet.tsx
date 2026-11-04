@@ -2,9 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 import { Command as CommandPrimitive } from "cmdk";
 import { matchSorter } from "match-sorter";
-import { Info, Search, X, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { Info, Search, X, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Star } from "lucide-react";
 import { StatusPill, StatusTone, OutOfServiceIcon, MaintenanceBadge } from "@/components/StationPopup/StatusBadges";
-import { ROW_PRESS, BUTTON_PRESS } from "@/lib/interaction";
+import { ROW_PRESS, BUTTON_PRESS, RAISED_BUTTON } from "@/lib/interaction";
 import { Drawer, DrawerPortal, DrawerTitle } from "@/components/ui/drawer";
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
@@ -24,10 +24,13 @@ const SNAP_PEEK = "136px";
 const SNAP_HALF = 0.55;
 const SNAP_FULL = 0.94;
 const MAX_RESULTS = 40;
+const GESTURE_RETURN_DELAY_MS = 300;
+// The sheet's slide takes this long, so even a quick gesture lets it finish getting out of the way
+const SHEET_SLIDE_MS = 500;
 // Matches the breakpoint MtaMap.tsx already uses for desktop-only map behavior
 const DESKTOP_QUERY = "(min-width: 768px)";
 
-// Bottom sheet on mobile, left side panel on desktop — this component stays mounted
+// Bottom sheet on mobile, top-left panel on desktop — this component stays mounted
 // across a resize, so it needs to react live rather than check window.innerWidth once.
 // Starts false (matching the server, which has no window) and corrects itself right
 // after mount; reading matchMedia in the initial state would mismatch server vs. client.
@@ -71,6 +74,8 @@ interface HomeSheetProps {
   locateSignal: number;
   // Bumped each time the map's "zoom out" (birdseye) button is tapped
   zoomOutSignal: number;
+  // True during a direct gesture on the map: pan, zoom, rotate or tilt
+  isMapManipulated: boolean;
   elevatorData: any[] | null;
   upcomingElevatorData: any[] | null;
   // Station or elevator details, built by the map handlers, shown as a sub-page
@@ -217,7 +222,7 @@ function Group({
           {action}
         </div>
       )}
-      <div className="overflow-hidden rounded-xl border border-border [&>*+*]:border-t [&>*+*]:border-border">
+      <div className="overflow-hidden rounded-xl shadow-raised [&>*+*]:border-t [&>*+*]:border-border">
         {children}
       </div>
     </section>
@@ -245,11 +250,12 @@ function SubPage({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {isDesktop ? <h2 className="sr-only">{label}</h2> : <DrawerTitle className="sr-only">{label}</DrawerTitle>}
-      <div className="flex items-center justify-between px-2 pb-1">
+      {/* The visible buttons sit 4px inside their tap areas, so desktop's pt-3 and the px-3 put them 16px from the panel's edges */}
+      <div className={cn("flex items-center justify-between px-3 pb-1", isDesktop && "pt-3")}>
         <Button
           variant="ghost"
           onClick={onBack}
-          className={cn("h-11 gap-0.5 rounded-full pl-1.5 pr-3 text-body font-normal text-foreground hover:bg-transparent", BUTTON_PRESS)}
+          className={cn("h-11 gap-0.5 rounded-full pl-3 pr-[18px] text-body font-normal text-foreground", RAISED_BUTTON)}
         >
           <ChevronLeft className="size-6" />
           Stations
@@ -259,7 +265,7 @@ function SubPage({
           size="icon"
           onClick={onBack}
           aria-label="Close"
-          className={cn("-mr-1 size-11 shrink-0 rounded-full text-muted-foreground hover:bg-transparent hover:text-foreground", BUTTON_PRESS)}
+          className={cn("size-11 shrink-0 rounded-full text-muted-foreground hover:text-foreground", RAISED_BUTTON)}
         >
           <X className="size-5" />
         </Button>
@@ -312,6 +318,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
   overrideLocation,
   locateSignal,
   zoomOutSignal,
+  isMapManipulated,
   elevatorData,
   upcomingElevatorData,
   page,
@@ -322,15 +329,47 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
   const [snap, setSnap] = useState<number | string | null>(SNAP_PEEK);
   const [query, setQuery] = useState("");
   const [isLegendOpen, setIsLegendOpen] = useState(false);
+  // Out of the way for a map gesture: minimized on mobile, off the left edge on desktop
+  const [isTucked, setIsTucked] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // The mobile height to return to after a map gesture; null when there's nothing to restore
+  const snapBeforeGesture = useRef<number | string | null>(null);
+  const tuckedAt = useRef(0);
 
   const isLoaded = lastUpdated !== null;
 
   // Opening a station lifts the sheet so its details show; going back lowers it
   useEffect(() => {
     if (page) setIsLegendOpen(false);
+    snapBeforeGesture.current = null;
     setSnap(page ? SNAP_HALF : SNAP_PEEK);
   }, [page]);
+
+  // Touching the map tucks the sheet away until shortly after the gesture ends. Another gesture
+  // before then restarts the wait; moving the sheet in the meantime cancels the return.
+  useEffect(() => {
+    if (isMapManipulated) {
+      // The legend doesn't come back: a gesture dismisses it to the Stations screen
+      if (isLegendOpen) {
+        setIsLegendOpen(false);
+        snapBeforeGesture.current = null;
+      } else if (snapBeforeGesture.current === null) {
+        snapBeforeGesture.current = snap;
+      }
+      setSnap(SNAP_PEEK);
+      if (!isTucked) tuckedAt.current = Date.now();
+      setIsTucked(true);
+      return;
+    }
+    if (!isTucked) return;
+    const timer = setTimeout(() => {
+      const target = snapBeforeGesture.current;
+      snapBeforeGesture.current = null;
+      if (target !== null) setSnap((s) => (s === SNAP_PEEK ? target : s));
+      setIsTucked(false);
+    }, Math.max(GESTURE_RETURN_DELAY_MS, SHEET_SLIDE_MS - (Date.now() - tuckedAt.current)));
+    return () => clearTimeout(timer);
+  }, [isMapManipulated]);
 
   // Map controls (geolocate/zoom-out/compass) lift to stay above the sheet as it rises to
   // its half-height snap point. At full height, they stop following and the sheet (which
@@ -361,12 +400,17 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
 
   // Tapping the map's locate button brings the nearby list into view
   useEffect(() => {
-    if (locateSignal > 0 && !page) setSnap((s) => (s === SNAP_PEEK ? SNAP_HALF : s));
+    if (locateSignal === 0 || page) return;
+    const raise = (s: number | string | null) => (s === SNAP_PEEK ? SNAP_HALF : s);
+    if (snapBeforeGesture.current !== null) snapBeforeGesture.current = raise(snapBeforeGesture.current);
+    else setSnap(raise);
   }, [locateSignal]);
 
   // Tapping the map's zoom-out (birdseye) button collapses the sheet to its minimum size
   useEffect(() => {
-    if (zoomOutSignal > 0) setSnap(SNAP_PEEK);
+    if (zoomOutSignal === 0) return;
+    snapBeforeGesture.current = null;
+    setSnap(SNAP_PEEK);
   }, [zoomOutSignal]);
 
   const stationOptions = useMemo(
@@ -448,7 +492,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
   };
 
   const isSearching = query.trim().length > 0;
-  // Desktop is a static left panel (no drag/snap), so it's always fully scrollable with
+  // Desktop is a static panel (no drag/snap), so it's always fully scrollable with
   // ordinary bottom padding. Mobile keeps the snap-point peek/half/full behavior.
   const isScrollable = isDesktop || snap !== SNAP_PEEK;
   // The sheet is always full height and slides down to each snap point, so the part below the
@@ -479,21 +523,40 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
         </SubPage>
       ) : (
         <Command shouldFilter={false} className="group min-h-0 flex-1 rounded-none bg-transparent">
-          <header className="flex items-center justify-between gap-3 px-4 pb-3 pt-1">
+          <header className={cn("flex items-center justify-between gap-3 px-4 pb-3", isDesktop ? "pt-3" : "pt-1")}>
             {isDesktop ? (
               <h2 className="text-title">Stations</h2>
             ) : (
               <DrawerTitle className="text-title">Stations</DrawerTitle>
             )}
-            <Button
+            <div className="-mr-1 flex shrink-0 items-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("size-11 rounded-full text-muted-foreground hover:text-foreground", RAISED_BUTTON)}
+                aria-label="Legend and about"
+                onClick={openLegend}
+              >
+                <Info className="size-5" />
+              </Button>
+              {/* Desktop's panel has no snap points to move between */}
+              {!isDesktop && (
+                <Button
                   variant="ghost"
                   size="icon"
-                  className={cn("-mr-2 size-11 shrink-0 rounded-full text-muted-foreground hover:bg-transparent hover:text-foreground", BUTTON_PRESS)}
-                  aria-label="Legend and about"
-                  onClick={openLegend}
+                  className={cn("size-11 rounded-full text-muted-foreground hover:text-foreground", RAISED_BUTTON)}
+                  aria-label={snap === SNAP_PEEK ? "Expand" : "Collapse"}
+                  onClick={() => {
+                    if (snap === SNAP_PEEK) return setSnap(SNAP_HALF);
+                    setQuery("");
+                    inputRef.current?.blur();
+                    setSnap(SNAP_PEEK);
+                  }}
                 >
-                  <Info className="size-5" />
+                  {snap === SNAP_PEEK ? <ChevronUp className="size-5" /> : <ChevronDown className="size-5" />}
                 </Button>
+              )}
+            </div>
               </header>
 
               <div className="px-4 pb-3">
@@ -541,8 +604,8 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
               >
                 {isSearching ? (
                   results.length > 0 ? (
-                    <CommandGroup className="p-0 px-4">
-                      <div className="overflow-hidden rounded-xl border border-border [&>*+*]:border-t [&>*+*]:border-border">
+                    <CommandGroup className="overflow-visible p-0 px-4">
+                      <div className="overflow-hidden rounded-xl shadow-raised [&>*+*]:border-t [&>*+*]:border-border">
                         {results.map((option) => (
                           <CommandItem
                             key={option.key}
@@ -597,10 +660,10 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                                 onClick={() => nearby.setRadius(value)}
                                 className={cn(
                                   // 32px pill, 44px tap area: the ::before extends the hit box without changing the look
-                                  "relative h-8 shrink-0 rounded-full border px-3 text-footnote font-semibold tabular-nums transition-colors duration-150 before:absolute before:inset-x-0 before:-inset-y-1.5",
+                                  "relative h-8 shrink-0 rounded-full px-3 text-footnote font-semibold tabular-nums transition-colors duration-150 before:absolute before:inset-x-0 before:-inset-y-1.5",
                                   active
-                                    ? "border-foreground bg-foreground text-background"
-                                    : "border-border text-foreground hover:bg-foreground/[0.04] active:bg-foreground/[0.08]",
+                                    ? "bg-foreground text-background shadow-raised"
+                                    : "text-foreground shadow-raised hover:bg-foreground/[0.04] active:bg-foreground/[0.08]",
                                 )}
                               >
                                 {label}
@@ -625,8 +688,8 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                             : `No accessible stations within ${formatWalkingDistance(nearby.radius)}. Try a longer distance.`}
                         </p>
                       ) : (
-                        <CommandGroup className="p-0 px-4">
-                          <div className="overflow-hidden rounded-xl border border-border [&>*+*]:border-t [&>*+*]:border-border">
+                        <CommandGroup className="overflow-visible p-0 px-4">
+                          <div className="overflow-hidden rounded-xl shadow-raised [&>*+*]:border-t [&>*+*]:border-border">
                             {nearby.stations.map((station) => (
                               <CommandItem
                                 key={station.complexId}
@@ -695,7 +758,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                         </div>
                       </Group>
                     ) : (
-                      <CommandGroup className="p-0">
+                      <CommandGroup className="overflow-visible p-0">
                         <Group title={isLoaded ? `Stations with outages · ${outageRows.length}` : "Stations with outages"}>
                           {outageRows.map((row) => (
                             <CommandItem
@@ -746,7 +809,12 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
       <div
         role="dialog"
         aria-label="Stations"
-        className="fixed left-4 top-[88px] z-[998] flex max-h-[calc(100dvh-104px)] w-[380px] flex-col overflow-hidden rounded-sheet bg-background shadow-[0_1px_2px_oklch(0_0_0/0.08),0_8px_24px_oklch(0_0_0/0.16)] outline-none"
+        className={cn(
+          // Same slide as the mobile sheet; the extra 48px clears the 16px gutter and the shadow.
+          // The height leaves room for the Mapbox logo and info icon below: 16px top + 73px + 8px gap.
+          "fixed left-4 top-4 z-[998] flex max-h-[calc(100dvh-97px)] w-[380px] flex-col overflow-hidden rounded-sheet bg-background shadow-[0_1px_2px_oklch(0_0_0/0.08),0_8px_24px_oklch(0_0_0/0.16)] outline-none transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+          isTucked && "-translate-x-[calc(100%+48px)]",
+        )}
       >
         {content}
       </div>
