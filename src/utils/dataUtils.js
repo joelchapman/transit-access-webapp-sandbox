@@ -1004,10 +1004,14 @@ export function flyIn(
       // extend for popup visibility and vertical spread
       adjustedBounds = extendBoundsForPopup(coordsOrBounds, "down");
     }
+    // Extra bottom clearance for the middle snap state's sheet — mobile only.
+    // Desktop shows the same view in a left-side panel, which doesn't cover the
+    // bottom of the screen, so it keeps the original clearance.
+    const isDesktop = window.innerWidth >= 768;
     const dynamicPadding =
       currentLatSpan > 0.0008
-        ? { top: 100, bottom: 200, left: 0, right: 0 }
-        : { top: 80, bottom: 220, left: 30, right: 30 };
+        ? { top: 100, bottom: isDesktop ? 200 : 420, left: 0, right: 0 }
+        : { top: 80, bottom: isDesktop ? 220 : 340, left: 30, right: 30 };
 
     const area = getAreaOfComplex(complex_id, map, false, 15); // fixed zoom so area is consistent regardless of current zoom (prevents double-tap drift)
 

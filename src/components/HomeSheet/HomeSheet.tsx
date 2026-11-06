@@ -15,7 +15,7 @@ import { LocationPin, AccessibleIconWhite } from "@/components/icons";
 import { useNearbyStations, WALKING_RADII, formatWalkingDistance } from "./useNearbyStations";
 import { getComplexesDataset } from "@/lib/dataStore";
 import { getElevatorsByComplexId } from "@/utils/dataUtils";
-import { COMMUNITY_LINKS } from "@/utils/constants";
+import { COMMUNITY_LINKS, ROUTE_ORDER } from "@/utils/constants";
 import { MtaStationData, MtaStationFeature } from "@/utils/types";
 import { cn } from "@/lib/utils";
 
@@ -55,7 +55,11 @@ type ComplexStatus = "ok" | "partial" | "out";
 interface ComplexRow {
   key: string;
   name: string;
+  // All lines at the complex, regardless of accessibility — what the station actually serves
   routes: Set<string>;
+  // Lines reachable via an accessible station here — if an elevator already covers all of
+  // these, there's nothing left to distinguish it with, so its bullets can be skipped
+  accessibleRoutes: Set<string>;
   feature: MtaStationFeature;
   coords: LngLat;
   isAccessible: boolean;
@@ -97,27 +101,58 @@ function StationLabel({ name, routes }: { name: string; routes: string[] }) {
 
 const toBool = (v: unknown) => v === true || v === "true" || v === "1";
 
+// Real subway route codes only — ROUTE_ORDER also has SIR/LIRR/METRONORTH, which are
+// multi-character and not how elevator shortdescriptions refer to them anyway
+const SUBWAY_ROUTES = new Set(ROUTE_ORDER.filter((r) => r.length === 1));
+// A run of route codes joined by "/" ("B/D", "N/Q/R/W", "7"), as a standalone word so it
+// doesn't match a letter/digit inside an ordinary word (e.g. the "A" in "Area")
+const ROUTE_MENTION = /\b([1-7A-Z](?:\/[1-7A-Z])*)\b/g;
+
+// Splits text into plain-text segments and recognized route mentions (rendered as flat,
+// non-overlapping subway bullets in place of the letters), plus the set of routes found
+function splitOnRouteMentions(text: string): { nodes: React.ReactNode[]; mentioned: Set<string> } {
+  const mentioned = new Set<string>();
+  const nodes: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let key = 0;
+  for (const match of text.matchAll(ROUTE_MENTION)) {
+    const token = match[1];
+    const routes = token.split("/");
+    if (!routes.every((r) => SUBWAY_ROUTES.has(r))) continue; // not every slash-part is a real route — leave as plain text
+    const index = match.index ?? 0;
+    if (index > lastIndex) nodes.push(text.slice(lastIndex, index));
+    routes.forEach((r) => mentioned.add(r));
+    nodes.push(<LineBullets key={key++} routes={routes} size="xs" animated={false} overlap={false} />);
+    lastIndex = index + token.length;
+  }
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return { nodes, mentioned };
+}
+
+const setsEqual = (a: Set<string>, b: Set<string>) => a.size === b.size && [...a].every((x) => b.has(x));
+
 // One out-of-service elevator, indented below its station — same info the old
 // NearbyStationsPopup showed per elevator, ported to the new row style.
 function OutElevatorRow({ el, stationRoutes }: { el: any; stationRoutes: string[] }) {
   const isRamp = el.properties.elevatorno?.toLowerCase().includes("ra");
-  const isStreet = toBool(el.properties.isStreet);
   const lines: string[] = (el.properties.linesServed || "").replace(/-/g, "").split("/").join(" ").split(" ").filter(Boolean);
-  // Lines only say something here if the elevator serves some of the station's lines, not all of them
-  const servesSomeLines = stationRoutes.some((route) => !lines.includes(route));
-  const direction = el.properties.directionLabel || "";
-  const title = isRamp
-    ? "Ramp"
-    : isStreet
-      ? "Street elevator"
-      : `Elevator${el.properties.isBridge ? " to overpass" : ""}${el.properties.isMezzTransferOnly ? " to lower mezzanine" : ""}`;
+  const linesSet = new Set(lines);
+  const shortDesc = el.properties.shortdescription || "";
+  const { nodes: shortDescNodes, mentioned } = splitOnRouteMentions(shortDesc);
+  // Skip the full list if either: the shortdesc's own inline mentions already name every line,
+  // or this elevator already covers every line the station has (nothing left to distinguish —
+  // e.g. a single-line station where every elevator trivially serves everything). Otherwise
+  // (two elevators at the same station can genuinely serve different lines) it's still needed,
+  // shown before the shortdesc text.
+  const coversStation = stationRoutes.length > 0 && setsEqual(linesSet, new Set(stationRoutes));
+  const showBullets = !isRamp && lines.length > 0 && !setsEqual(mentioned, linesSet) && !coversStation;
 
   return (
     <div className="flex flex-col text-footnote text-muted-foreground">
       <span className="truncate">
-        {title}
-        {!isRamp && servesSomeLines && lines.length > 0 && <> <LineBullets routes={lines} size="xs" animated={false} /></>}
-        {direction && ` (${direction})`}
+        {isRamp && "Ramp"}
+        {showBullets && <LineBullets routes={lines} size="xs" animated={false} overlap={false} />}
+        {!isRamp && shortDesc && (showBullets ? <> — {shortDescNodes}</> : shortDescNodes)}
       </span>
       {el.properties.isRedundant === "1" && (
         <span className="mt-1 text-caption font-semibold text-status-ok-foreground">Another path available</span>
@@ -158,9 +193,11 @@ function OutageBanner({
           )}
         />
       </p>
-      {elevators.map((el, i) => (
-        <OutElevatorRow key={el.properties.elevatorno ?? i} el={el} stationRoutes={stationRoutes} />
-      ))}
+      {/* "All elevators out" already says it — listing every one of them adds nothing */}
+      {!isOut &&
+        elevators.map((el, i) => (
+          <OutElevatorRow key={el.properties.elevatorno ?? i} el={el} stationRoutes={stationRoutes} />
+        ))}
     </div>
   );
 }
@@ -374,15 +411,15 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
     return () => clearTimeout(timer);
   }, [isMapManipulated]);
 
-  // Map controls (geolocate/zoom-out/compass) lift to stay above the sheet as it rises to
-  // its half-height snap point. At full height, they stop following and the sheet (which
-  // sits above them in z-index) covers them instead of pushing them off the top of the screen.
+  // Map controls (geolocate/zoom-out/compass) and the Mapbox logo/attribution row both lift
+  // to stay above the sheet as it rises to its half-height snap point. At full height, they
+  // stop following and the sheet (which sits above them in z-index) covers them instead of
+  // pushing them off the top of the screen.
   useEffect(() => {
     const height =
       snap === SNAP_FULL ? `${SNAP_HALF * 100}dvh` : typeof snap === "number" ? `${snap * 100}dvh` : snap ?? SNAP_PEEK;
     document.documentElement.style.setProperty("--bottom-popup-h", height);
-    // The Mapbox logo has to stay visible, so unlike the controls it follows the sheet all the way up
-    document.documentElement.style.setProperty("--sheet-h", typeof snap === "number" ? `${snap * 100}dvh` : snap ?? SNAP_PEEK);
+    document.documentElement.style.setProperty("--sheet-h", height);
   }, [snap]);
 
   const openLegend = () => {
@@ -456,6 +493,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
           key: complex_id,
           name: complex?.properties.stop_name ?? stop_name,
           routes: new Set(),
+          accessibleRoutes: new Set(),
           feature,
           coords: (complex?.geometry.coordinates ?? feature.geometry.coordinates) as LngLat,
           isAccessible: false,
@@ -469,7 +507,14 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
         };
         rows.set(complex_id, row);
       }
-      daytime_routes.split(" ").filter(Boolean).forEach((r) => row.routes.add(r));
+      const routesHere = daytime_routes.split(" ").filter(Boolean);
+      routesHere.forEach((r) => row.routes.add(r));
+      // Match concatenateRoutes (used by the nearby list): only count routes from this
+      // complex's accessible stations — an inaccessible station's lines were never reachable
+      // by any elevator here, so they shouldn't count toward "this elevator covers everything"
+      if (ada !== "0") {
+        routesHere.forEach((r) => row.accessibleRoutes.add(r));
+      }
       row.isAccessible ||= ada !== "0";
       if (outages.has(station_id)) row.affected.push(outages.get(station_id));
     });
@@ -579,8 +624,8 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                         setSnap(SNAP_PEEK);
                       }
                     }}
-                    placeholder="Search stations or lines"
-                    aria-label="Search stations or lines"
+                    placeholder="Search stations"
+                    aria-label="Search stations"
                     // 16px keeps iOS Safari from zooming on focus
                     className="h-full w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
                   />
@@ -773,7 +818,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                               <span className="flex min-h-14 w-full items-center gap-3 px-4 py-3">
                                 <StationLabel name={row.name} routes={Array.from(row.routes)} />
                               </span>
-                              <OutageBanner status={row.status} count={row.outElevators.length} elevators={row.outElevators} stationRoutes={Array.from(row.routes)} />
+                              <OutageBanner status={row.status} count={row.outElevators.length} elevators={row.outElevators} stationRoutes={Array.from(row.accessibleRoutes)} />
                             </CommandItem>
                           ))}
                         </Group>
@@ -795,6 +840,11 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                       ))}
                     </Group>
                   </>
+                )}
+                {lastUpdated && (
+                  <p className="px-4 pb-3 pt-1 text-footnote text-muted-foreground">
+                    Last updated: {lastUpdated.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                  </p>
                 )}
               </CommandList>
               </ScrollEdge>

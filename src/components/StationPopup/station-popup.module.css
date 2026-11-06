@@ -269,16 +269,6 @@
   position: relative;
 }
 
-.lastUpdated {
-  font-family: -apple-system, BlinkMacSystemFont, Helvetica Neue, Helvetica, Arial, sans-serif;
-  color: oklch(var(--muted-foreground));
-  align-items: center;
-  justify-items: center;
-  margin-left: 0.5rem;
-  font-size: 0.75rem;
-  display: none;
-}
-
 .headerRow {
   display: flex;
   align-items: center;

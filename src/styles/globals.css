@@ -446,11 +446,12 @@ div#__next > div {
   opacity: 0.55;
 }
 
-/* The rounded white "pill" backing behind the icon — nudge position here (margin-top
-   shifts down/up, margin-left shifts right/left) so the icon moves together with it */
+/* The rounded white "pill" backing behind the icon — nudge position via the last value
+   (left). Mapbox's own default here is margin: 10px all around; overriding only
+   margin-top/margin-left left the default 10px on the right and bottom in place,
+   which is what was reading as uneven padding — this pins down all four sides instead. */
 .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-attrib.mapboxgl-compact {
-  margin-top: 0px;
-  margin-left: 5px;
+  padding: 0 0 0 0;
 }
 
 /* Mobile's row: the logo image overhangs its box by 4px, so this lines the icon up with its center */
@@ -461,7 +462,7 @@ div#__next > div {
 
   /* 6px between the icon and the logo */
   .mapboxgl-ctrl-bottom-left:not(:has(.mapboxgl-compact-show)) .mapboxgl-ctrl:not(.mapboxgl-ctrl-attrib) {
-    margin-left: 0;
+    margin-left: -5px;
   }
 }
 

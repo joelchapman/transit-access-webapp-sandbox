@@ -28,7 +28,7 @@ export type ElevatorPopupProps = {
   isRedundant?: boolean | string;
   isUpcomingOutage?: UpcomingOutage[] | null;
   maintenanceLabel?: string | null;
-  lastUpdated?: string,
+  lastUpdated?: Date | string | null;
 };
 
 export type StationPopupProps = {

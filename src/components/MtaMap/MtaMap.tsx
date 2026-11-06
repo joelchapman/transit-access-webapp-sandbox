@@ -40,6 +40,7 @@ import {
   cleanUpPopups,
   removeHoverPopup,
   setSheetHost,
+  refreshCurrentPopup,
 } from "./handlerFunctions";
 import {
   getStationOutageArray,
@@ -362,6 +363,10 @@ const MtaMap = () => {
 
       setLastUpdated(new Date());
       lastUpdatedRef.current = new Date();
+
+      // Whatever station/elevator popup is currently open re-renders with this fresh
+      // data instead of staying frozen at whenever it was clicked
+      refreshCurrentPopup(elevData, upcomingData, stationData, lastUpdatedRef.current);
 
       // Trigger layer redraws after data updates
       if (

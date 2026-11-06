@@ -76,6 +76,15 @@ let currentPopupRoot: Root | null = null;
 let currentPopupDiv: HTMLElement | null = null;
 let manhattanPolygon: number[][][][] | null = null;
 
+// TEMPORARY POPUP REFRESH UNTIL JOEL REWIRES POPUP BEHAVIOR (leftover from Mapbox Popup)
+let currentPopupRefresh:
+  | ((elevatorData: any, upcomingElevatorData: any, stationData: any, lastUpdated: any) => void)
+  | null = null;
+
+export function refreshCurrentPopup(elevatorData: any, upcomingElevatorData: any, stationData: any, lastUpdated: any) {
+  currentPopupRefresh?.(elevatorData, upcomingElevatorData, stationData, lastUpdated);
+}
+
 export function setMapPitch(pitch: any) {
   return pitch as number;
 }
@@ -251,6 +260,7 @@ export function cleanUpPopups() {
     currentPopupDiv.remove();
     currentPopupDiv = null;
   }
+  currentPopupRefresh = null;
   sheetHost?.hide();
 }
 

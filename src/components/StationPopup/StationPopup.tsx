@@ -95,11 +95,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
   // Working is the default, so the summary only counts elevators when none are out; otherwise it
   // counts the ones that are
   const outageLabel =
-    oosCount < totalElevators
-      ? `${oosCount} of ${totalElevators} elevators out`
-      : totalElevators === 1
-        ? "1 elevator out"
-        : `All ${totalElevators} elevators out`;
+    oosCount < totalElevators ? `${oosCount} of ${totalElevators} elevators out` : "All elevators out";
 
   const getSubwayLinesText = (lines: string) => {
     return lines.split(" ").filter(Boolean).join(", ");
@@ -455,15 +451,9 @@ const StationPopup: React.FC<StationPopupProps> = ({
         </section>
       </div>
       {lastUpdated && (
-        <div className={styles.lastUpdated}>
-          <span>
-            Last updated:{" "}
-            {new Date(lastUpdated).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}{" "}
-          </span>
-        </div>
+        <p className="px-4 pb-4 pt-1 text-footnote text-muted-foreground">
+          Last updated: {new Date(lastUpdated).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+        </p>
       )}
     </section>
   );

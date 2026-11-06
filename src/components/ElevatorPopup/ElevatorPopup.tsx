@@ -34,6 +34,7 @@ const ElevatorPopup: React.FC<ElevatorPopupProps> = ({
   isUpcomingOutage,
   maintenanceLabel,
   ada,
+  lastUpdated,
 }) => {
   const lines = (linesServed || "").replace(/-/g, "").replaceAll("/", " ");
   const isRamp = elevatorno.toLowerCase().includes("ra");
@@ -80,6 +81,11 @@ const ElevatorPopup: React.FC<ElevatorPopupProps> = ({
       <PlannedOutageNotes outages={upcoming} maintenanceLabel={maintenanceLabel} />
       {description_custom && <p className="text-subhead text-pretty">{description_custom}</p>}
       <ElevatorFooter elevatorno={elevatorno} lines={lines} ada={ada} />
+      {lastUpdated && (
+        <p className="text-footnote text-muted-foreground">
+          Last updated: {new Date(lastUpdated).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+        </p>
+      )}
     </section>
   );
 };
