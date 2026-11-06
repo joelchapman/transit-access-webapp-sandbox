@@ -31,10 +31,14 @@ export function StatusPill({
   tone,
   children,
   size = "row",
+  icon,
 }: {
   tone: StatusTone;
   children: React.ReactNode;
   size?: PillSize;
+  // Overrides the tone's default StatusIcon glyph, e.g. the octagon X used for "out of service"
+  // everywhere else on the map and in the station card, instead of the plain alert disc
+  icon?: React.ReactNode;
 }) {
   const t = TONES[tone];
   const s = SIZES[size];
@@ -43,11 +47,11 @@ export function StatusPill({
       className={cn(
         "inline-flex shrink-0 items-center rounded-full font-semibold",
         s.pill,
-        !t.glyph && (size === "row" ? "pl-2" : "pl-3"),
+        !t.glyph && !icon && (size === "row" ? "pl-2" : "pl-3"),
         t.surface,
       )}
     >
-      {t.glyph && <StatusIcon glyph={t.glyph} className={cn(s.icon, t.icon)} />}
+      {icon ?? (t.glyph && <StatusIcon glyph={t.glyph} className={cn(s.icon, t.icon)} />)}
       {children}
     </span>
   );
@@ -96,6 +100,6 @@ export const MaintenanceBadge = ({ when }: { when: string }) => (
 
 export const RedundantBadge = () => (
   <span className="inline-flex shrink-0 items-center rounded-full bg-status-ok-muted px-2 py-px text-caption font-semibold text-status-ok-foreground">
-    Another path available
+    Alternate path available
   </span>
 );

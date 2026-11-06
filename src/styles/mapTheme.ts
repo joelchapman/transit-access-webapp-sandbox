@@ -1,4 +1,5 @@
 import { mapColors } from "./mapColors";
+import { dotView } from "@/components/MtaMap/layers/CurrentOutages/currentOutagesProps";
 
 // A muted base map in the spirit of Apple Maps' transit view, applied on top of the Mapbox Studio
 // export (mapbox-style.json) when the map is created. The export stays untouched, so it can be
@@ -219,7 +220,8 @@ export function applyMapTheme<T>(source: T): T {
     "text-halo-color": mapColors.surface,
     "text-halo-width": 1.5,
     "text-halo-blur": 0.5,
-    "text-opacity": ["step", ["zoom"], 0, 13, 1, 15, 0],
+    // Hidden below dotView — the station itself is just a dot there, a name next to it reads oddly
+    "text-opacity": ["step", ["zoom"], 0, dotView, 1, 15, 0],
   });
   // No step-free access: a small gray dot and a quieter name. Red stays reserved for outages
   layout("mta-subway-stations-inaccessible", {
@@ -232,9 +234,8 @@ export function applyMapTheme<T>(source: T): T {
   });
   paint("mta-subway-stations-inaccessible", {
     "text-color": C.label,
-    // Matches the raw Studio style's original threshold (and the accessible labels' own) —
-    // was bumped to 14 here, making inaccessible names only show up a zoom level closer in
-    "text-opacity": ["step", ["zoom"], 0, 13, 1],
+    // Matches the accessible labels' own threshold: hidden below dotView, same reasoning
+    "text-opacity": ["step", ["zoom"], 0, dotView, 1],
   });
 
   // Street elevators: the app's "outages" layer draws one marker per elevator (components/ElevatorMarker).

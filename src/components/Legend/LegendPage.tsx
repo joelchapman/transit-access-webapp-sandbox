@@ -161,7 +161,7 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
               ),
               text: "Not working. Return time estimated by MTA.",
             },
-            { badge: <RedundantBadge />, text: "If out of service, another path is possible." },
+            { badge: <RedundantBadge />, text: "If out of service, an alternate path is possible." },
             { badge: <AccessTipBadge />, text: "Access tip from the community." },
             { badge: <OutagePlannedBadge />, text: "Future outage planned." },
             {

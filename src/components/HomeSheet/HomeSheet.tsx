@@ -157,7 +157,7 @@ function OutElevatorRow({ el, stationRoutes }: { el: any; stationRoutes: string[
         {!isRamp && shortDesc && (showBullets ? <> — {shortDescNodes}</> : shortDescNodes)}
       </span>
       {el.properties.isRedundant === "1" && (
-        <span className="mt-1 text-caption font-semibold text-status-ok-foreground">Another path available</span>
+        <span className="mt-1 text-caption font-semibold text-status-ok-foreground">Alternate path available</span>
       )}
     </div>
   );
@@ -452,8 +452,10 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
   }, [page, isLegendOpen]);
 
   // Touching the map tucks the sheet away until shortly after the gesture ends. Another gesture
-  // before then restarts the wait; moving the sheet in the meantime cancels the return.
+  // before then restarts the wait; moving the sheet in the meantime cancels the return. Mobile
+  // only — desktop's panel sits beside the map, not over it, so a gesture never needs to clear it.
   useEffect(() => {
+    if (isDesktop) return;
     if (isMapManipulated) {
       // The legend doesn't come back: a gesture dismisses it to the Stations screen
       if (isLegendOpen) {
@@ -475,7 +477,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
       setIsTucked(false);
     }, Math.max(GESTURE_RETURN_DELAY_MS, SHEET_SLIDE_MS - (Date.now() - tuckedAt.current)));
     return () => clearTimeout(timer);
-  }, [isMapManipulated]);
+  }, [isMapManipulated, isDesktop]);
 
   // Map controls (geolocate/zoom-out/compass) and the Mapbox logo/attribution row both lift
   // to stay above the sheet as it rises to its half-height snap point. At full height, they

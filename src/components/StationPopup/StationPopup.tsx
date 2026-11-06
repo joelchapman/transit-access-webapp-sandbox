@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { OctagonX } from "lucide-react";
 import ElevatorCard from "./ElevatorCard";
 import { Note } from "@/components/Note/Note";
 import { StatusPill } from "./StatusBadges";
@@ -10,7 +11,6 @@ import {
   WarnIcon,
   Ramp,
 } from "../icons";
-import { ElevatorMarker } from "@/components/ElevatorMarker/ElevatorMarker";
 import { StationMarker } from "@/components/StationMarker/StationMarker";
 import { StationPopupProps } from "@/utils/types";
 import { generateSubwayLines } from "@/utils/dataUtils";
@@ -97,7 +97,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
   const outageLabel =
     oosCount < totalElevators
       ? `${totalElevators - oosCount} of ${totalElevators} elevators in service`
-      : "All elevators out";
+      : "All elevators out of service";
 
   const getSubwayLinesText = (lines: string) => {
     return lines.split(" ").filter(Boolean).join(", ");
@@ -111,18 +111,13 @@ const StationPopup: React.FC<StationPopupProps> = ({
     const visualParts = [];
 
     if (totalElevators > 0) {
-      srParts.push(
-        `${totalElevators} ${totalElevators > 1 ? "elevators" : "elevator"}`,
-      );
+      // The caller only ever passes a nonzero totalElevators here when every one of them is
+      // working (it passes 0 otherwise), so this branch is always the fully-in-service case
+      srParts.push("All elevators in service");
 
       visualParts.push(
-        <span
-          key="elevators"
-          style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}
-          aria-hidden="true"
-        >
-          <ElevatorMarker state="ok" size={18} />
-          {totalElevators} {totalElevators > 1 ? "elevators" : "elevator"}
+        <span key="elevators" aria-hidden="true">
+          All elevators in service
         </span>,
       );
     }
@@ -353,12 +348,20 @@ const StationPopup: React.FC<StationPopupProps> = ({
             </StatusPill>
           )}
           {oosCount > 0 && (
-            <StatusPill tone={oosCount === totalElevators ? "out" : "partial"} size="summary">
+            <StatusPill
+              tone={oosCount === totalElevators ? "out" : "partial"}
+              size="summary"
+              icon={
+                oosCount === totalElevators ? (
+                  <OctagonX className="size-4 text-status-out-on" strokeWidth={2.5} aria-hidden="true" />
+                ) : undefined
+              }
+            >
               {outageLabel}
             </StatusPill>
           )}
           {(oosCount === 0 || totalRamps > 0) && (
-            <StatusPill tone="neutral" size="summary">
+            <StatusPill tone={oosCount === 0 && totalElevators > 0 ? "ok" : "neutral"} size="summary">
               {buildEquipmentText(oosCount === 0 ? totalElevators : 0, totalRamps)}
             </StatusPill>
           )}
