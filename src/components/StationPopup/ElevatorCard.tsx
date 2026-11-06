@@ -110,8 +110,8 @@ const ElevatorCard: React.FC<{
     return `https://www.google.com/maps/dir/?api=1&origin=${userLocation[1]},${userLocation[0]}&destination=${elevator.coordinates[1]},${elevator.coordinates[0]}&travelmode=walking`;
   })();
 
-  // With a photo, status is a mark on the photo: a check when it works, an alert when it doesn't.
-  // Without one it's a pill. Screen readers get the words either way.
+  // An outage always gets an octagon X before the title. With a photo that's the only visual status;
+  // without one there's a pill too. Screen readers get the words either way.
   const showsOut = isOut && !isRamp;
   const hasPhoto = !!elevator.imageURL;
   const inServiceLabel = isRamp ? "Always in service" : "In service";
@@ -149,13 +149,14 @@ const ElevatorCard: React.FC<{
             "focus-ring-inset flex w-full min-w-0 cursor-pointer items-stretch py-3 pl-4 text-left",
             ROW_PRESS,
             // Room for the thumbnail while it's showing; snaps (not animated) so text reflows once
-            elevator.imageURL && !isOpen ? "min-h-[104px] pr-[116px]" : "pr-4",
+            elevator.imageURL && !isOpen ? "min-h-[104px] pr-[108px]" : "pr-4",
           )}
         >
           {/* Fills the row's height: title at the top, status pinned to the bottom, lining up with the photo */}
           <span className="flex min-w-0 flex-1 flex-col justify-between gap-1">
             <span className="flex flex-col gap-1">
               <span className="flex flex-wrap items-center gap-1.5 text-headline font-semibold text-pretty">
+                <ElevatorStatusMark isOut={showsOut} />
                 {isRamp ? "Ramp" : isStreet ? "Street elevator" : (
                   <>
                     Elevator to {elevator.isBridge ? "overpass to " : ""}
@@ -164,7 +165,7 @@ const ElevatorCard: React.FC<{
                 )}
                 {routes.length > 0 && (
                   <>
-                    <LineBullets routes={routes} size="sm" />
+                    <LineBullets routes={routes} size="sm" animated={false} />
                     {/* The bullets are aria-hidden */}
                     <span className="sr-only">{routes.join(", ")}</span>
                   </>
@@ -200,8 +201,9 @@ const ElevatorCard: React.FC<{
           </span>
         </div>
 
-        {/* 104px wide and the full height of the row, flush to its right edge, photo cropped to fill. Rows
-            are at least 104px tall, so one-line rows grow to a square. Opening the row fades it out as
+        {/* Inset 8px from the row's top, right and bottom, photo cropped to fill. Its 8px radius is the group's
+            (radius + 4px) minus the inset, so the corners run concentric wherever they meet the group's.
+            Rows are at least 104px tall, so one-line rows show an 88px square. Opening the row fades it out as
             the full photo grows in below; only opacity and transform animate. Clicking it opens the row,
             but it's not a focus stop: the row already does that, and its status is in the row's text */}
         {elevator.imageURL && (
@@ -209,14 +211,13 @@ const ElevatorCard: React.FC<{
             onClick={() => onToggle(true)}
             aria-hidden="true"
             className={cn(
-              "absolute cursor-pointer inset-y-0 right-0 w-[104px] origin-top-right overflow-hidden bg-muted transition-[opacity,transform] motion-reduce:transition-none",
+              "absolute cursor-pointer inset-y-2 right-2 w-[88px] origin-top-right overflow-hidden rounded-sm bg-muted transition-[opacity,transform] motion-reduce:transition-none",
               EXPAND_EASE,
               isOpen ? "pointer-events-none scale-90 opacity-0" : "scale-100 opacity-100",
               "before:absolute before:inset-0 before:transition-colors before:duration-150 hover:before:bg-foreground/10 active:before:bg-foreground/20",
             )}
           >
             <img src={elevator.imageURL} alt="" className="size-full object-cover" />
-            <ElevatorStatusMark isOut={showsOut} className="right-2 top-2" />
           </div>
         )}
       </div>
@@ -245,7 +246,6 @@ const ElevatorCard: React.FC<{
           {elevator.imageURL && (
             <div className="relative overflow-hidden rounded-[8px] bg-muted">
               <img src={elevator.imageURL} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
-              <ElevatorStatusMark isOut={showsOut} className="right-3 top-3" />
               {isStreet && elevator.coordinates && (
                 <button
                   ref={flyButtonRef}

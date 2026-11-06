@@ -155,17 +155,8 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
             {
               badge: (
                 <>
-                  <span className="sr-only">In service</span>
-                  <ElevatorStatusMark isOut={false} className="relative" />
-                </>
-              ),
-              text: "Working now.",
-            },
-            {
-              badge: (
-                <>
                   <span className="sr-only">Out of service</span>
-                  <ElevatorStatusMark isOut className="relative" />
+                  <ElevatorStatusMark isOut className="size-5" />
                 </>
               ),
               text: "Not working. Return time estimated by MTA.",

@@ -1,5 +1,5 @@
 import React from "react";
-import { Wrench } from "lucide-react";
+import { OctagonX, Wrench } from "lucide-react";
 import { AccessibleIconWhite } from "../icons";
 import { StatusIcon } from "@/components/StatusIcon/StatusIcon";
 import { cn } from "@/lib/utils";
@@ -57,16 +57,12 @@ export const InServicePill = ({ label = "In service" }: { label?: string }) => (
   <StatusPill tone="ok">{label}</StatusPill>
 );
 
-// An elevator's status, as just a mark in the corner of its photo. Decorative: pair it with
-// screen-reader text. The white backing keeps the color readable over any photo.
-export const ElevatorStatusMark = ({ isOut, className }: { isOut: boolean; className?: string }) => (
-  <span
-    aria-hidden="true"
-    className={cn("absolute grid size-6 place-items-center rounded-full bg-background shadow-badge", className)}
-  >
-    <StatusIcon glyph={isOut ? "alert" : "check"} className={cn("size-5", isOut ? "text-status-out" : "text-status-ok")} />
-  </span>
-);
+// An out-of-service elevator gets the same octagon X as a fully out station on the map, right before its
+// title. A working elevator gets nothing. Decorative: pair it with screen-reader text.
+export const ElevatorStatusMark = ({ isOut, className }: { isOut: boolean; className?: string }) =>
+  isOut ? (
+    <OctagonX aria-hidden="true" strokeWidth={2.5} className={cn("size-[1.1em] shrink-0 text-status-out", className)} />
+  ) : null;
 
 export const OutOfServicePill = () => <StatusPill tone="out">Out of service</StatusPill>;
 

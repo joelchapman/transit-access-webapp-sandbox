@@ -1,10 +1,10 @@
 import React from "react";
-import { Accessibility, Wrench } from "lucide-react";
+import { Accessibility, OctagonX } from "lucide-react";
 import { mapColors } from "@/styles/mapColors";
 
 // How a station shows on the map. The state is carried by shape first and color second, so it
 // reads for colorblind riders and in glare: a plain marker when every elevator works, a gray marker
-// with a yellow dot when some are out, a red marker with a crossed-out wrench when all are out, and
+// with a yellow dot when some are out, a red marker with an octagon X when all are out, and
 // a small gray dot for stations with no step-free access at all. Icons are Lucide's; this component
 // only wraps them.
 //
@@ -36,41 +36,26 @@ export function StationMarker({ access, size = MARKER_SIZE }: { access: StationA
 
   const tone = TONES[access];
   const icon = 15;
+  const Icon = access === "out" ? OctagonX : Accessibility;
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${MARKER_SIZE} ${MARKER_SIZE}`} aria-hidden="true">
       <circle cx={CENTER} cy={CENTER} r={RADIUS + RING} fill={mapColors.surface} />
       <circle cx={CENTER} cy={CENTER} r={RADIUS} fill={tone.fill} />
-      {access === "out" ? (
-        <WrenchOff x={CENTER - icon / 2} y={CENTER - icon / 2} size={icon} />
-      ) : (
-        <Accessibility
-          x={CENTER - icon / 2}
-          y={CENTER - icon / 2}
-          width={icon}
-          height={icon}
-          color={mapColors.surface}
-          strokeWidth={2.4}
-        />
-      )}
+      <Icon
+        x={CENTER - icon / 2}
+        y={CENTER - icon / 2}
+        width={icon}
+        height={icon}
+        color={mapColors.surface}
+        strokeWidth={2.4}
+      />
       {"dot" in tone && (
         <>
           <circle cx={27.5} cy={6.5} r={6.5} fill={mapColors.surface} />
           <circle cx={27.5} cy={6.5} r={4.75} fill={tone.dot} />
         </>
       )}
-    </svg>
-  );
-}
-
-// Lucide has no wrench-off, so this is its wrench with the slash its other "-off" icons use. A red
-// casing under the slash cuts a gap where it crosses the wrench, the way Lucide's off icons do.
-function WrenchOff({ x, y, size }: { x: number; y: number; size: number }) {
-  return (
-    <svg x={x} y={y} width={size} height={size} viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <Wrench color={mapColors.surface} strokeWidth={2.4} />
-      <line x1={2} y1={2} x2={22} y2={22} stroke={TONES.out.fill} strokeWidth={6} />
-      <line x1={2} y1={2} x2={22} y2={22} stroke={mapColors.surface} strokeWidth={2.4} />
     </svg>
   );
 }

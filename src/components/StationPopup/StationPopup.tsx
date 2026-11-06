@@ -93,10 +93,11 @@ const StationPopup: React.FC<StationPopupProps> = ({
     return `${oosCount} of ${totalElevators} elevators are out of service`;
   };
 
-  // Working is the default, so the summary only counts elevators when none are out; otherwise it
-  // counts the ones that are
+  // Shown only when something is out: counts the elevators still working, or says none are
   const outageLabel =
-    oosCount < totalElevators ? `${oosCount} of ${totalElevators} elevators out` : "All elevators out";
+    oosCount < totalElevators
+      ? `${totalElevators - oosCount} of ${totalElevators} elevators in service`
+      : "All elevators out";
 
   const getSubwayLinesText = (lines: string) => {
     return lines.split(" ").filter(Boolean).join(", ");

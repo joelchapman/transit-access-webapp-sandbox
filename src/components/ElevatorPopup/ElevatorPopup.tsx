@@ -52,10 +52,11 @@ const ElevatorPopup: React.FC<ElevatorPopupProps> = ({
       <header className="flex flex-col gap-1">
         <p className="text-subhead text-muted-foreground">{stationName}</p>
         <h1 id="elevator-popup-title" className="flex flex-wrap items-center gap-1.5 text-title text-balance">
+          <ElevatorStatusMark isOut={out} />
           {title}
           {routes.length > 0 && (
             <>
-              <LineBullets routes={routes} size="sm" />
+              <LineBullets routes={routes} size="sm" animated={false} />
               {/* The bullets are aria-hidden */}
               <span className="sr-only">{routes.join(", ")}</span>
             </>
@@ -63,7 +64,7 @@ const ElevatorPopup: React.FC<ElevatorPopupProps> = ({
         </h1>
         {caveat && <p className="text-footnote text-muted-foreground text-pretty">{caveat}</p>}
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-          {/* With a photo, status is a mark on the photo. Screen readers get the words either way */}
+          {/* With a photo, the octagon X before the title marks an outage. Screen readers get the words either way */}
           {imageURL ? (
             <span className="sr-only">{out ? "Out of service" : isRamp ? "Always in service" : "In service"}</span>
           ) : out ? (
@@ -80,7 +81,6 @@ const ElevatorPopup: React.FC<ElevatorPopupProps> = ({
       {imageURL && (
         <div className="relative">
           <img src={imageURL} alt="" className="aspect-[4/3] w-full rounded-[8px] object-cover" />
-          <ElevatorStatusMark isOut={out} className="right-3 top-3" />
         </div>
       )}
       {access_note && <AccessTipNote note={access_note} />}
