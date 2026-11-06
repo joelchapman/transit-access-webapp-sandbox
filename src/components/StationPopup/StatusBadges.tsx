@@ -70,82 +70,32 @@ export const ElevatorStatusMark = ({ isOut, className }: { isOut: boolean; class
 
 export const OutOfServicePill = () => <StatusPill tone="out">Out of service</StatusPill>;
 
-// Extra information about an elevator: outlined, so it never competes with the status pill.
-// Pass onClick to make it a real button (e.g. a badge that opens the card to reveal its note).
-function Badge({
-  icon,
-  children,
-  onClick,
-  "aria-label": ariaLabel,
-}: {
-  icon: React.ReactNode;
-  children: React.ReactNode;
-  onClick?: (e: React.MouseEvent) => void;
-  "aria-label"?: string;
-}) {
-  const className = cn(
-    // py-px + the 1px border matches a row pill's height
-    "inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-background py-px pl-1.5 pr-2 text-caption font-semibold text-foreground",
-  );
-
-  if (onClick) {
-    return (
-      <button type="button" onClick={onClick} aria-label={ariaLabel} className={className}>
-        {icon}
-        {children}
-      </button>
-    );
-  }
-
+// Extra information about an elevator: outlined, so it never competes with the status pill
+function Badge({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <span className={className}>
+    // py-px + the 1px border matches a row pill's height
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-background py-px pl-1.5 pr-2 text-caption font-semibold text-foreground">
       {icon}
       {children}
     </span>
   );
 }
 
-export const AccessTipBadge = ({ onClick, "aria-label": ariaLabel }: { onClick?: (e: React.MouseEvent) => void; "aria-label"?: string }) => (
-  <Badge icon={<AccessibleIconWhite size={12} fill="oklch(var(--access-tip-foreground))" />} onClick={onClick} aria-label={ariaLabel}>
-    Access tip
-  </Badge>
+export const AccessTipBadge = () => (
+  <Badge icon={<AccessibleIconWhite size={12} fill="oklch(var(--access-tip-foreground))" />}>Access tip</Badge>
 );
 
-export const OutagePlannedBadge = ({
-  onClick,
-  "aria-label": ariaLabel,
-  isLongTerm,
-}: {
-  onClick?: (e: React.MouseEvent) => void;
-  "aria-label"?: string;
-  // Short-term reads as a lower-severity amber; long-term matches the "out of service" red
-  isLongTerm?: boolean;
-}) => (
+// Short-term reads as a lower-severity amber; long-term matches the "out of service" red
+export const OutagePlannedBadge = ({ isLongTerm }: { isLongTerm?: boolean }) => (
   <Badge
     icon={<Wrench className={cn("size-3", isLongTerm ? "text-status-out" : "text-status-partial")} strokeWidth={2.5} aria-hidden="true" />}
-    onClick={onClick}
-    aria-label={ariaLabel}
   >
     Outage planned
   </Badge>
 );
 
-export const MaintenanceBadge = ({
-  when,
-  onClick,
-  "aria-label": ariaLabel,
-}: {
-  when: string;
-  onClick?: (e: React.MouseEvent) => void;
-  "aria-label"?: string;
-}) => (
-  <Badge
-    icon={<Wrench className="size-3 text-status-out" strokeWidth={2.5} aria-hidden="true" />}
-    onClick={onClick}
-    aria-label={ariaLabel}
-  >
-    Maintenance {when}
-  </Badge>
+export const MaintenanceBadge = ({ when }: { when: string }) => (
+  <Badge icon={<Wrench className="size-3 text-status-out" strokeWidth={2.5} aria-hidden="true" />}>Maintenance {when}</Badge>
 );
 
 export const RedundantBadge = () => (

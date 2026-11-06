@@ -1,25 +1,27 @@
 import React from "react";
 import { Wrench } from "lucide-react";
 import { AccessibleIconWhite } from "../icons";
-import { generateSubwayLines } from "@/utils/dataUtils";
 import { longtermOutageThreshold } from "../MtaMap/layers/UpcomingOutages/upcomingOutagesProps";
 import { UpcomingOutage } from "@/utils/types";
 import { cn } from "@/lib/utils";
+import { Note } from "@/components/Note/Note";
 
 // The detail blocks an elevator shows once opened, shared by the station list row
 // and the view that opens from tapping an elevator on the map.
 
 export function AccessTipNote({ note }: { note: string }) {
   return (
-    <div className="flex flex-col gap-1 rounded-[8px] bg-access-tip p-3 text-subhead text-pretty">
-      <p className="flex items-center justify-between gap-2.5 font-semibold">
-        Access tip
-        <span className="shrink-0" aria-hidden="true">
+    <Note
+      tone="tip"
+      title="Access tip"
+      icon={
+        <span aria-hidden="true">
           <AccessibleIconWhite size={16} fill="oklch(var(--access-tip-foreground))" />
         </span>
-      </p>
-      <p>{note}</p>
-    </div>
+      }
+    >
+      {note}
+    </Note>
   );
 }
 
@@ -38,47 +40,31 @@ export function PlannedOutageNotes({
         const isLongTerm = o.outageDurationDays > longtermOutageThreshold;
         const isImpending = isLongTerm || !!maintenanceLabel;
         return (
-          <div
+          <Note
             key={i}
-            className={cn(
-              "flex flex-col gap-1 rounded-[8px] p-3 text-subhead text-pretty",
-              isImpending ? "surface-out bg-status-out-muted" : "surface-partial bg-status-partial-muted",
-            )}
-          >
-            <p className="flex items-center justify-between gap-2.5 font-semibold">
-              Upcoming {isLongTerm ? "Long-term" : "Short-term"} Outage
+            tone={isImpending ? "out" : "partial"}
+            title={`Upcoming ${isLongTerm ? "Long-term" : "Short-term"} Outage`}
+            icon={
               <Wrench
-                className={cn("size-4 shrink-0", isImpending ? "text-status-out" : "text-status-partial-foreground")}
+                className={cn("size-4", isImpending ? "text-status-out" : "text-status-partial-foreground")}
                 strokeWidth={2.25}
                 aria-hidden="true"
               />
-            </p>
-            <p>
-              {o.outageDuration} ({o.reason})
-            </p>
-          </div>
+            }
+          >
+            {o.outageDuration} ({o.reason})
+          </Note>
         );
       })}
     </>
   );
 }
 
-export function ElevatorFooter({
-  elevatorno,
-  lines,
-  ada,
-}: {
-  elevatorno: string;
-  lines: string;
-  ada?: string;
-}) {
+export function ElevatorFooter({ elevatorno }: { elevatorno: string }) {
   const isRamp = elevatorno.toLowerCase().includes("ra");
   return (
-    <div className="flex items-center justify-between gap-3 text-footnote tabular-nums text-muted-foreground">
-      <span>
-        {isRamp ? "Ramp" : "Elevator"} {elevatorno}
-      </span>
-      {lines && <span className="flex items-center">{generateSubwayLines(lines, "small", ada, false, {})}</span>}
-    </div>
+    <p className="text-footnote tabular-nums text-muted-foreground">
+      {isRamp ? "Ramp" : "Elevator"} {elevatorno}
+    </p>
   );
 }

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 // hover to fan out, so their stacks overlap 2px less.
 const SIZES = {
   xs: "size-4 [&:not(:first-child)]:-ml-[5px] [@media(hover:none)]:[&:not(:first-child)]:-ml-[3px] [--fan:6px]",
-  sm: "size-[22px] [&:not(:first-child)]:-ml-[7px] [@media(hover:none)]:[&:not(:first-child)]:-ml-[5px] [--fan:9px]",
+  sm: "size-[22px] [&:not(:first-child)]:-ml-[5px] [@media(hover:none)]:[&:not(:first-child)]:-ml-[3px] [--fan:7px]",
   md: "size-6 [&:not(:first-child)]:-ml-2 [@media(hover:none)]:[&:not(:first-child)]:-ml-1.5 [--fan:10px]",
   lg: "size-8 [&:not(:first-child)]:-ml-2.5 [@media(hover:none)]:[&:not(:first-child)]:-ml-2 [--fan:12px]",
 };

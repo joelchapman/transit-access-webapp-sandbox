@@ -85,6 +85,7 @@ const ElevatorCard: React.FC<{
   const detailsId = `elevator-details-${elevator.elevatorno}`;
 
   const lines = elevator.linesServed?.replace(/-/g, "").replaceAll("/", " ") || "";
+  const routes = lines.split(" ").filter(Boolean);
   const eta = elevator.estimatedreturntoservice && elevator.estimatedreturntoservice !== "null"
     ? elevator.estimatedreturntoservice.replace(/^(Today|Tomorrow)\b/, (w) => w.toLowerCase())
     : null;
@@ -97,12 +98,6 @@ const ElevatorCard: React.FC<{
   // Worst case wins if there's a mix: any long-term outage makes the badge red
   const hasLongTermOutage = upcomingOutages.some((o) => o.outageDurationDays > longtermOutageThreshold);
 
-  // shortdescription is unreliable (not curated for display) — generate the title instead
-  const titleText = isRamp
-    ? "Ramp"
-    : isStreet
-      ? "Street elevator"
-      : `Elevator to ${elevator.isBridge ? "overpass to " : ""}${elevator.isMezzTransferOnly ? "lower mezzanine to " : ""}${lines.split(" ").join("/")} trains`;
   // shortdescription shown as a quiet always-visible note, ahead of the real access_note
   // (which stays behind the AccessTipBadge/AccessTipNote, revealed on open)
   const caveat = elevator.shortdescription;
@@ -135,8 +130,8 @@ const ElevatorCard: React.FC<{
   return (
     <div ref={rootRef} className="flex scroll-mt-2 flex-col">
       <div className="relative">
-        {/* A div, not a button: the access-tip/outage badges inside need to be real,
-            independently-focusable <button>s, which can't nest inside one */}
+        {/* The row is the card's only focus stop. Everything inside it, badges included, is plain
+            text, so a screen reader announces it all as the button's name */}
         <div
           role="button"
           tabIndex={0}
@@ -150,7 +145,8 @@ const ElevatorCard: React.FC<{
           aria-expanded={isOpen}
           aria-controls={detailsId}
           className={cn(
-            "flex w-full min-w-0 cursor-pointer items-stretch py-3 pl-4 text-left focus-visible:[outline-offset:-2px]",
+            // Left unpositioned so the focus ring spans the whole row, photo included
+            "focus-ring-inset flex w-full min-w-0 cursor-pointer items-stretch py-3 pl-4 text-left",
             ROW_PRESS,
             // Room for the thumbnail while it's showing; snaps (not animated) so text reflows once
             elevator.imageURL && !isOpen ? "min-h-[104px] pr-[116px]" : "pr-4",
@@ -160,21 +156,20 @@ const ElevatorCard: React.FC<{
           <span className="flex min-w-0 flex-1 flex-col justify-between gap-1">
             <span className="flex flex-col gap-1">
               <span className="flex flex-wrap items-center gap-1.5 text-headline font-semibold text-pretty">
-                {isRamp ? (
-                  "Ramp"
-                ) : isStreet ? (
-                  <>
-                    Street elevator
-                    {lines && <LineBullets routes={lines.split(" ").filter(Boolean)} size="sm" />}
-                  </>
-                ) : (
+                {isRamp ? "Ramp" : isStreet ? "Street elevator" : (
                   <>
                     Elevator to {elevator.isBridge ? "overpass to " : ""}
                     {elevator.isMezzTransferOnly ? "lower mezzanine to " : ""}
-                    {lines && <LineBullets routes={lines.split(" ").filter(Boolean)} size="sm" />}
-                    {" "}trains
                   </>
                 )}
+                {routes.length > 0 && (
+                  <>
+                    <LineBullets routes={routes} size="sm" />
+                    {/* The bullets are aria-hidden */}
+                    <span className="sr-only">{routes.join(", ")}</span>
+                  </>
+                )}
+                {!isRamp && !isStreet && " trains"}
               </span>
               {caveat && <span className="text-footnote text-muted-foreground text-pretty">{caveat}</span>}
             </span>
@@ -184,26 +179,15 @@ const ElevatorCard: React.FC<{
                 {status}
                 {/* Open rows show the full tip and outage notes right below, so these badges would only repeat them */}
                 {elevator.access_note && !isOpen && (
-                  <AccessTipBadge
-                    onClick={(e) => { e.stopPropagation(); onToggle(true); }}
-                    aria-label="Show access tip"
-                  />
+                  <AccessTipBadge />
                 )}
                 {/* A maintenance label means the upcoming outage is today/tonight/tomorrow — the
                     maintenance badge already says that, so it replaces the generic outage badge */}
                 {upcomingOutages.length > 0 && !elevator.maintenanceLabel && !isOpen && (
-                  <OutagePlannedBadge
-                    isLongTerm={hasLongTermOutage}
-                    onClick={(e) => { e.stopPropagation(); onToggle(true); }}
-                    aria-label="Show planned outage"
-                  />
+                  <OutagePlannedBadge isLongTerm={hasLongTermOutage} />
                 )}
                 {elevator.maintenanceLabel && !(isOpen && upcomingOutages.length > 0) && (
-                  <MaintenanceBadge
-                    when={elevator.maintenanceLabel}
-                    onClick={isOpen ? undefined : (e) => { e.stopPropagation(); onToggle(true); }}
-                    aria-label={isOpen ? undefined : `Show maintenance ${elevator.maintenanceLabel}`}
-                  />
+                  <MaintenanceBadge when={elevator.maintenanceLabel} />
                 )}
               </span>
 
@@ -218,25 +202,22 @@ const ElevatorCard: React.FC<{
 
         {/* 104px wide and the full height of the row, flush to its right edge, photo cropped to fill. Rows
             are at least 104px tall, so one-line rows grow to a square. Opening the row fades it out as
-            the full photo grows in below; only opacity and transform animate */}
+            the full photo grows in below; only opacity and transform animate. Clicking it opens the row,
+            but it's not a focus stop: the row already does that, and its status is in the row's text */}
         {elevator.imageURL && (
-          <button
-            type="button"
+          <div
             onClick={() => onToggle(true)}
-            aria-label={`Show photo of ${titleText.toLowerCase()}`}
-            aria-controls={detailsId}
-            tabIndex={isOpen ? -1 : undefined}
-            aria-hidden={isOpen || undefined}
+            aria-hidden="true"
             className={cn(
-              "absolute inset-y-0 right-0 w-[104px] origin-top-right overflow-hidden focus-visible:[outline-offset:-2px] bg-muted transition-[opacity,transform] motion-reduce:transition-none",
+              "absolute cursor-pointer inset-y-0 right-0 w-[104px] origin-top-right overflow-hidden bg-muted transition-[opacity,transform] motion-reduce:transition-none",
               EXPAND_EASE,
               isOpen ? "pointer-events-none scale-90 opacity-0" : "scale-100 opacity-100",
-              "after:absolute after:inset-0 after:transition-colors after:duration-150 hover:after:bg-foreground/10 active:after:bg-foreground/20",
+              "before:absolute before:inset-0 before:transition-colors before:duration-150 hover:before:bg-foreground/10 active:before:bg-foreground/20",
             )}
           >
             <img src={elevator.imageURL} alt="" className="size-full object-cover" />
             <ElevatorStatusMark isOut={showsOut} className="right-2 top-2" />
-          </button>
+          </div>
         )}
       </div>
 
@@ -305,7 +286,7 @@ const ElevatorCard: React.FC<{
             </a>
           )}
 
-          <ElevatorFooter elevatorno={elevator.elevatorno} lines={lines} ada={elevator.ada} />
+          <ElevatorFooter elevatorno={elevator.elevatorno} />
           </div>
         </div>
       </div>

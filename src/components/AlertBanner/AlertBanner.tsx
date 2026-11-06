@@ -4,15 +4,16 @@ import { StatusIcon } from "@/components/StatusIcon/StatusIcon";
 import { AlertData } from "@/types/alerts";
 import { cn } from "@/lib/utils";
 import { BUTTON_PRESS } from "@/lib/interaction";
+import { Note } from "@/components/Note/Note";
 
 const DISMISSED_KEY = "dismissed-system-alerts";
 
-// Severity → status palette, so a good-news banner doesn't look like a warning
+// Severity → note tone and title, so a good-news banner doesn't look like a warning
 const ALERT_TONES = {
-  success: { glyph: "check", surface: "bg-status-ok-muted", icon: "text-status-ok" },
-  info: { glyph: "info", surface: "bg-background", icon: "text-muted-foreground" },
-  warning: { glyph: "alert", surface: "surface-partial bg-status-partial-muted", icon: "text-status-partial" },
-  error: { glyph: "alert", surface: "surface-out bg-status-out-muted", icon: "text-status-out" },
+  success: { tone: "ok", title: "Good news", glyph: "check", icon: "text-status-ok" },
+  info: { tone: "info", title: "Update", glyph: "info", icon: "text-muted-foreground" },
+  warning: { tone: "partial", title: "Service alert", glyph: "alert", icon: "text-status-partial [--status-icon-glyph:oklch(var(--status-partial-foreground))]" },
+  error: { tone: "out", title: "Service alert", glyph: "alert", icon: "text-status-out" },
 } as const;
 
 function readDismissed(): string[] {
@@ -47,25 +48,27 @@ const AlertBanner: React.FC<{ alerts: AlertData[] }> = ({ alerts }) => {
       {visible.map((alert) => {
         const tone = ALERT_TONES[alert.severity] ?? ALERT_TONES.warning;
         return (
-          <div
+          <Note
             key={alert.text}
             role="status"
-            className={cn(
-              "pointer-events-auto flex items-start gap-3 rounded-xl py-3 pl-4 pr-1 shadow-overlay",
-              tone.surface,
-            )}
+            tone={tone.tone}
+            title={tone.title}
+            icon={<StatusIcon glyph={tone.glyph} className={tone.icon} />}
+            action={
+              <button
+                type="button"
+                onClick={() => dismiss(alert.text)}
+                aria-label="Dismiss alert"
+                className={cn("-my-3 -mr-3 grid size-11 shrink-0 place-items-center rounded-full text-muted-foreground", BUTTON_PRESS)}
+              >
+                <X className="size-4" />
+              </button>
+            }
+            // Floats over the map
+            className="pointer-events-auto shadow-overlay"
           >
-            <StatusIcon glyph={tone.glyph} className={cn("mt-0.5 size-[18px]", tone.icon)} />
-            <p className="min-w-0 flex-1 text-subhead text-pretty">{alert.text}</p>
-            <button
-              type="button"
-              onClick={() => dismiss(alert.text)}
-              aria-label="Dismiss alert"
-              className={cn("-my-2.5 grid size-11 shrink-0 place-items-center rounded-full text-muted-foreground", BUTTON_PRESS)}
-            >
-              <X className="size-4" />
-            </button>
-          </div>
+            {alert.text}
+          </Note>
         );
       })}
     </div>

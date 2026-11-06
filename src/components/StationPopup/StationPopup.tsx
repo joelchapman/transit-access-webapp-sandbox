@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import ElevatorCard from "./ElevatorCard";
+import { Note } from "@/components/Note/Note";
 import { StatusPill } from "./StatusBadges";
 import styles from "@/components/StationPopup/station-popup.module.css";
 import {
@@ -316,17 +317,15 @@ const StationPopup: React.FC<StationPopupProps> = ({
           {complexAlert.length > 0 && (
             <div className="mx-4 mb-3 flex flex-col gap-2">
               {complexAlert.map((alert: string, index: number) => (
-                <div
+                <Note
                   key={index}
                   role="status"
-                  className="surface-partial flex items-start gap-3 rounded-xl bg-status-partial-muted px-4 py-3"
+                  tone="partial"
+                  title="Station alert"
+                  icon={<StatusIcon glyph="alert" className="text-status-partial [--status-icon-glyph:oklch(var(--status-partial-foreground))]" />}
                 >
-                  <StatusIcon glyph="alert" className="mt-0.5 size-[18px] text-status-partial" />
-                  <p className="min-w-0 text-subhead text-pretty">
-                    <span className="sr-only">Station alert: </span>
-                    {renderAlertWithLinks(alert)}
-                  </p>
-                </div>
+                  {renderAlertWithLinks(alert)}
+                </Note>
               ))}
             </div>
           )}
@@ -380,7 +379,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
             </>
           )}
 
-          <div className={styles.elevatorGroup}>
+          <div className={`focus-ring-group ${styles.elevatorGroup}`}>
           {elevators
             .filter((e) => toBool(e.isStreet))
             .sort((a, b) => {
@@ -419,7 +418,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
             </>
           )}
           {/* In-station elevators */}
-          <div className={styles.elevatorGroup}>
+          <div className={`focus-ring-group ${styles.elevatorGroup}`}>
           {elevators
             .filter((e) => !toBool(e.isStreet))
             .sort((a, b) => {
@@ -451,7 +450,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
         </section>
       </div>
       {lastUpdated && (
-        <p className="px-4 pb-4 pt-1 text-footnote text-muted-foreground">
+        <p className="px-4 pb-1 pt-2 text-footnote text-muted-foreground">
           Last updated: {new Date(lastUpdated).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
         </p>
       )}

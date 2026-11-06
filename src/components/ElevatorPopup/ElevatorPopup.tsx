@@ -33,10 +33,10 @@ const ElevatorPopup: React.FC<ElevatorPopupProps> = ({
   shortdescription,
   isUpcomingOutage,
   maintenanceLabel,
-  ada,
   lastUpdated,
 }) => {
   const lines = (linesServed || "").replace(/-/g, "").replaceAll("/", " ");
+  const routes = lines.split(" ").filter(Boolean);
   const isRamp = elevatorno.toLowerCase().includes("ra");
   const out = toBool(isOut) && !isRamp;
   const upcoming = isUpcomingOutage ?? [];
@@ -53,7 +53,13 @@ const ElevatorPopup: React.FC<ElevatorPopupProps> = ({
         <p className="text-subhead text-muted-foreground">{stationName}</p>
         <h1 id="elevator-popup-title" className="flex flex-wrap items-center gap-1.5 text-title text-balance">
           {title}
-          {!isRamp && lines && <LineBullets routes={lines.split(" ").filter(Boolean)} size="sm" />}
+          {routes.length > 0 && (
+            <>
+              <LineBullets routes={routes} size="sm" />
+              {/* The bullets are aria-hidden */}
+              <span className="sr-only">{routes.join(", ")}</span>
+            </>
+          )}
         </h1>
         {caveat && <p className="text-footnote text-muted-foreground text-pretty">{caveat}</p>}
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -80,7 +86,7 @@ const ElevatorPopup: React.FC<ElevatorPopupProps> = ({
       {access_note && <AccessTipNote note={access_note} />}
       <PlannedOutageNotes outages={upcoming} maintenanceLabel={maintenanceLabel} />
       {description_custom && <p className="text-subhead text-pretty">{description_custom}</p>}
-      <ElevatorFooter elevatorno={elevatorno} lines={lines} ada={ada} />
+      <ElevatorFooter elevatorno={elevatorno} />
       {lastUpdated && (
         <p className="text-footnote text-muted-foreground">
           Last updated: {new Date(lastUpdated).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}

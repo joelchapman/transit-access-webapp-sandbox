@@ -149,7 +149,9 @@ function OutElevatorRow({ el, stationRoutes }: { el: any; stationRoutes: string[
 
   return (
     <div className="flex flex-col text-footnote text-muted-foreground">
-      <span className="truncate">
+      {/* Wraps rather than truncating: an ellipsis can only shorten text, so a line that runs out
+          inside a group of bullets would just cut a bullet in half */}
+      <span className="text-pretty">
         {isRamp && "Ramp"}
         {showBullets && <LineBullets routes={lines} size="xs" animated={false} overlap={false} />}
         {!isRamp && shortDesc && (showBullets ? <> — {shortDescNodes}</> : shortDescNodes)}
@@ -220,7 +222,7 @@ function Group({
           {action}
         </div>
       )}
-      <div className="overflow-hidden rounded-xl shadow-raised [&>*+*]:border-t [&>*+*]:border-border">
+      <div className="focus-ring-group overflow-hidden rounded-xl shadow-raised [--focus-ring-radius:theme(borderRadius.xl)] [&>*+*]:border-t [&>*+*]:border-border">
         {children}
       </div>
     </section>
@@ -325,9 +327,10 @@ function AdoptedNode({ node }: { node: HTMLElement }) {
   return <div ref={ref} />;
 }
 
-// Highlight only while the sheet has focus, so touch users don't see a phantom selection
+// Highlight only while the search field has focus: that's what the arrow keys move the selection
+// from, so touch users don't see a phantom selection and it clears once focus moves elsewhere
 const itemClass =
-  "group/row flex min-h-14 cursor-pointer items-center gap-3 rounded-none px-4 py-3 text-body transition-colors duration-150 data-[selected=true]:bg-transparent hover:!bg-state-hover active:!bg-state-press group-focus-within:data-[selected=true]:bg-state-hover group-focus-within:data-[selected=true]:[outline:2px_solid_oklch(var(--ring))] group-focus-within:data-[selected=true]:[outline-offset:-2px]";
+  "focus-ring-inset group/row flex min-h-14 cursor-pointer items-center gap-3 rounded-none px-4 py-3 text-body transition-colors duration-150 data-[selected=true]:bg-transparent hover:!bg-state-hover active:!bg-state-press group-has-[[cmdk-input]:focus]:data-[selected=true]:bg-state-hover";
 
 // Same row, but stacked vertically so an out-of-service elevator sublist can live inside the
 // same clickable item as the station summary — the whole block, elevators included, is one button.
@@ -335,7 +338,7 @@ const itemClass =
 // (items-stretch, px-0 py-0) so the two children below take the item's full width instead of
 // shrinking to their content and centering — which is what let long rows overflow sideways.
 const itemWithSublistClass =
-  "group/row flex flex-col items-stretch gap-0 cursor-pointer rounded-none px-0 py-0 text-body transition-colors duration-150 data-[selected=true]:bg-transparent hover:!bg-state-hover active:!bg-state-press group-focus-within:data-[selected=true]:bg-state-hover group-focus-within:data-[selected=true]:[outline:2px_solid_oklch(var(--ring))] group-focus-within:data-[selected=true]:[outline-offset:-2px]";
+  "focus-ring-inset group/row flex flex-col items-stretch gap-0 cursor-pointer rounded-none px-0 py-0 text-body transition-colors duration-150 data-[selected=true]:bg-transparent hover:!bg-state-hover active:!bg-state-press group-has-[[cmdk-input]:focus]:data-[selected=true]:bg-state-hover";
 
 const HomeSheet: React.FC<HomeSheetProps> = ({
   open,
@@ -657,7 +660,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                 {isSearching ? (
                   results.length > 0 ? (
                     <CommandGroup className="overflow-visible p-0 px-4">
-                      <div className="overflow-hidden rounded-xl shadow-raised [&>*+*]:border-t [&>*+*]:border-border">
+                      <div className="focus-ring-group overflow-hidden rounded-xl shadow-raised [--focus-ring-radius:theme(borderRadius.xl)] [&>*+*]:border-t [&>*+*]:border-border">
                         {results.map((option) => (
                           <CommandItem
                             key={option.key}
@@ -741,7 +744,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                         </p>
                       ) : (
                         <CommandGroup className="overflow-visible p-0 px-4">
-                          <div className="overflow-hidden rounded-xl shadow-raised [&>*+*]:border-t [&>*+*]:border-border">
+                          <div className="focus-ring-group overflow-hidden rounded-xl shadow-raised [--focus-ring-radius:theme(borderRadius.xl)] [&>*+*]:border-t [&>*+*]:border-border">
                             {nearby.stations.map((station) => (
                               <CommandItem
                                 key={station.complexId}
@@ -832,7 +835,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                           href={link.href}
                           target={link.href.startsWith("mailto:") ? undefined : "_blank"}
                           rel="noreferrer"
-                          className={cn("flex min-h-12 items-center justify-between px-4 py-3 text-body focus-visible:[outline-offset:-2px]", ROW_PRESS)}
+                          className={cn("focus-ring-inset relative flex min-h-12 items-center justify-between px-4 py-3 text-body", ROW_PRESS)}
                         >
                           {link.label}
                           <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
