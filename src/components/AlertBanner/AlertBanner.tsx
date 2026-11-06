@@ -8,12 +8,12 @@ import { Note } from "@/components/Note/Note";
 
 const DISMISSED_KEY = "dismissed-system-alerts";
 
-// Severity → note tone and title, so a good-news banner doesn't look like a warning
+// Severity → note tone, so a good-news banner doesn't look like a warning
 const ALERT_TONES = {
-  success: { tone: "ok", title: "Good news", glyph: "check", icon: "text-status-ok" },
-  info: { tone: "info", title: "Update", glyph: "info", icon: "text-muted-foreground" },
-  warning: { tone: "partial", title: "Service alert", glyph: "alert", icon: "text-status-partial [--status-icon-glyph:oklch(var(--status-partial-foreground))]" },
-  error: { tone: "out", title: "Service alert", glyph: "alert", icon: "text-status-out" },
+  success: { tone: "ok", glyph: "check", icon: "text-status-ok" },
+  info: { tone: "info", glyph: "info", icon: "text-muted-foreground" },
+  warning: { tone: "partial", glyph: "alert", icon: "text-status-partial [--status-icon-glyph:oklch(var(--status-partial-foreground))]" },
+  error: { tone: "out", glyph: "alert", icon: "text-status-out" },
 } as const;
 
 function readDismissed(): string[] {
@@ -52,7 +52,6 @@ const AlertBanner: React.FC<{ alerts: AlertData[] }> = ({ alerts }) => {
             key={alert.text}
             role="status"
             tone={tone.tone}
-            title={tone.title}
             icon={<StatusIcon glyph={tone.glyph} className={tone.icon} />}
             action={
               <button

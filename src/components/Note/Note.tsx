@@ -24,15 +24,28 @@ export function Note({
   children,
 }: {
   tone: NoteTone;
-  title: React.ReactNode;
+  // Omit for a plain icon + message row, no header (e.g. a system alert that doesn't need a label)
+  title?: React.ReactNode;
   // Decorative: hide it from screen readers
   icon: React.ReactNode;
-  // Sits after the icon in the title row, e.g. a dismiss button
+  // Sits after the icon, e.g. a dismiss button
   action?: React.ReactNode;
   role?: React.AriaRole;
   className?: string;
   children: React.ReactNode;
 }) {
+  if (!title) {
+    return (
+      <div role={role} className={cn("flex items-start gap-3 rounded-[8px] p-3 text-subhead text-pretty", TONES[tone], className)}>
+        <span className="mt-0.5 shrink-0" aria-hidden="true">
+          {icon}
+        </span>
+        <p className="min-w-0 flex-1">{children}</p>
+        {action}
+      </div>
+    );
+  }
+
   return (
     <div role={role} className={cn("flex flex-col gap-1 rounded-[8px] p-3 text-subhead text-pretty", TONES[tone], className)}>
       <div className="flex items-center justify-between gap-2.5">

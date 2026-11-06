@@ -255,6 +255,8 @@ function ScrollEdge({ children }: { children: React.ReactNode }) {
   );
 }
 
+const FOCUSABLE_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 // isDesktop skips vaul's DrawerTitle (it needs a <Drawer> context that the desktop
 // panel, rendered outside one, doesn't have) in favor of a plain heading.
 function SubPage({
@@ -275,6 +277,47 @@ function SubPage({
   hasScrollEdge?: boolean;
   children: React.ReactNode;
 }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Whatever had focus before this page opened (almost always the search input, since cmdk
+  // keeps real focus there even while arrow keys "select" a row) gets it back once this page
+  // closes — otherwise closing drops focus to <body> and a keyboard user has to re-Tab from
+  // the top of the document to get back to where they were.
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    return () => previouslyFocused?.focus?.();
+  }, []);
+
+  // The sheet is deliberately non-modal (map clicks/zoom still work behind it), but keyboard
+  // users still need a way out: Escape always closes, and Tab wraps within this page instead of
+  // escaping into whatever's behind it on the map (there's no visual indication it even left).
+  // Elements are re-queried on every Tab press since opening/closing a row changes what's focusable.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onBack();
+        return;
+      }
+      if (e.key !== "Tab" || !rootRef.current) return;
+      const focusable = Array.from(rootRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+        (el) => !el.hasAttribute("disabled") && el.offsetParent !== null,
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onBack]);
+
   const scroller = (
     <div
       {...(scrollable ? {} : COLLAPSED_PROPS)}
@@ -288,7 +331,7 @@ function SubPage({
     </div>
   );
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
       {isDesktop ? <h2 className="sr-only">{label}</h2> : <DrawerTitle className="sr-only">{label}</DrawerTitle>}
       {/* The visible buttons sit 4px inside their tap areas, so desktop's pt-3 and the px-3 put them 16px from the panel's edges */}
       <div className={cn("flex items-center justify-between px-3 pb-1", isDesktop && "pt-3")}>
@@ -339,6 +382,26 @@ const itemClass =
 // shrinking to their content and centering — which is what let long rows overflow sideways.
 const itemWithSublistClass =
   "focus-ring-inset group/row flex flex-col items-stretch gap-0 cursor-pointer rounded-none px-0 py-0 text-body transition-colors duration-150 data-[selected=true]:bg-transparent hover:!bg-state-hover active:!bg-state-press group-has-[[cmdk-input]:focus]:data-[selected=true]:bg-state-hover";
+
+// The default (nearby/outages) list isn't search results — it's just a browsable list, so its
+// rows are real, individually Tab-focusable targets instead of cmdk's arrow-key-only virtual
+// selection. `relative` is added explicitly because .focus-ring-inset's ring positions itself
+// against the nearest positioned ancestor, which CommandItem's own base class provided for free.
+const plainItemClass =
+  "focus-ring-inset relative group/row flex min-h-14 cursor-pointer items-center gap-3 rounded-none px-4 py-3 text-body transition-colors duration-150 hover:!bg-state-hover active:!bg-state-press";
+
+const plainItemWithSublistClass =
+  "focus-ring-inset relative group/row flex flex-col items-stretch gap-0 cursor-pointer rounded-none px-0 py-0 text-body transition-colors duration-150 hover:!bg-state-hover active:!bg-state-press";
+
+// Enter/Space activates a row the same way a real <button> would. These rows are plain
+// role="button" divs rather than real <button>s because the nearby row nests its own
+// distance-toggle button inside, and a <button> can't contain another <button>.
+const activateOnKey = (onActivate: () => void) => (e: React.KeyboardEvent) => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    onActivate();
+  }
+};
 
 const HomeSheet: React.FC<HomeSheetProps> = ({
   open,
@@ -575,7 +638,8 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
           />
         </SubPage>
       ) : (
-        <Command shouldFilter={false} className="group min-h-0 flex-1 rounded-none bg-transparent">
+        <div className="group flex min-h-0 flex-1 flex-col">
+        <Command shouldFilter={false} className="contents">
           <header className={cn("flex items-center justify-between gap-3 px-4 pb-3", isDesktop ? "pt-3" : "pt-1")}>
             {isDesktop ? (
               <h2 className="text-title">Stations</h2>
@@ -648,6 +712,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                 </div>
               </div>
 
+              {isSearching && (
               <ScrollEdge>
               <CommandList
                 {...(isScrollable ? {} : COLLAPSED_PROPS)}
@@ -657,39 +722,57 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                 )}
                 style={endPadding}
               >
-                {isSearching ? (
-                  results.length > 0 ? (
-                    <CommandGroup className="overflow-visible p-0 px-4">
-                      <div className="focus-ring-group overflow-hidden rounded-xl shadow-raised [--focus-ring-radius:theme(borderRadius.xl)] [&>*+*]:border-t [&>*+*]:border-border">
-                        {results.map((option) => (
-                          <CommandItem
-                            key={option.key}
-                            value={option.key}
-                            onSelect={() => select(option.feature)}
-                            className={itemClass}
-                          >
-                            <StationLabel name={option.name} routes={option.routes} />
-                            {option.isAccessible ? (
-                              <span className="shrink-0 text-muted-foreground">
-                                <span aria-hidden="true">
-                                  <AccessibleIconWhite size={14} fill="currentColor" />
-                                </span>
-                                <span className="sr-only">Accessible station</span>
+                {results.length > 0 ? (
+                  <CommandGroup className="overflow-visible p-0 px-4">
+                    <div className="focus-ring-group overflow-hidden rounded-xl shadow-raised [--focus-ring-radius:theme(borderRadius.xl)] [&>*+*]:border-t [&>*+*]:border-border">
+                      {results.map((option) => (
+                        <CommandItem
+                          key={option.key}
+                          value={option.key}
+                          onSelect={() => select(option.feature)}
+                          className={itemClass}
+                        >
+                          <StationLabel name={option.name} routes={option.routes} />
+                          {option.isAccessible ? (
+                            <span className="shrink-0 text-muted-foreground">
+                              <span aria-hidden="true">
+                                <AccessibleIconWhite size={14} fill="currentColor" />
                               </span>
-                            ) : (
-                              <span className="shrink-0 text-footnote text-muted-foreground">Not accessible</span>
-                            )}
-                          </CommandItem>
-                        ))}
-                      </div>
-                    </CommandGroup>
-                  ) : (
-                    <p className="px-8 py-10 text-center text-body text-muted-foreground">
-                      No stations match “{query}”. Try a street name or a line, like “L”.
-                    </p>
-                  )
+                              <span className="sr-only">Accessible station</span>
+                            </span>
+                          ) : (
+                            <span className="shrink-0 text-footnote text-muted-foreground">Not accessible</span>
+                          )}
+                        </CommandItem>
+                      ))}
+                    </div>
+                  </CommandGroup>
                 ) : (
-                  <>
+                  <p className="px-8 py-10 text-center text-body text-muted-foreground">
+                    No stations match “{query}”. Try a street name or a line, like “L”.
+                  </p>
+                )}
+                {lastUpdated && (
+                  <p className="px-4 pb-3 pt-1 text-footnote text-muted-foreground">
+                    Last updated: {lastUpdated.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                  </p>
+                )}
+              </CommandList>
+              </ScrollEdge>
+              )}
+        </Command>
+        {/* Not search results — a plain browsable list, so its rows are real Tab stops
+            instead of cmdk's arrow-key-only virtual selection (see itemClass above) */}
+        {!isSearching && (
+              <ScrollEdge>
+              <div
+                {...(isScrollable ? {} : COLLAPSED_PROPS)}
+                className={cn(
+                  "max-h-none flex-1 overscroll-contain",
+                  isScrollable ? "overflow-y-auto" : "overflow-hidden",
+                )}
+                style={endPadding}
+              >
                     <section className="pt-3">
                       <div className="flex items-center justify-between px-8 pb-2">
                         <h3 className="flex items-center gap-1.5 text-caption font-semibold uppercase tracking-[0.06em] text-muted-foreground">
@@ -743,15 +826,19 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                             : `No accessible stations within ${formatWalkingDistance(nearby.radius)}. Try a longer distance.`}
                         </p>
                       ) : (
-                        <CommandGroup className="overflow-visible p-0 px-4">
+                        <div className="px-4">
                           <div className="focus-ring-group overflow-hidden rounded-xl shadow-raised [--focus-ring-radius:theme(borderRadius.xl)] [&>*+*]:border-t [&>*+*]:border-border">
-                            {nearby.stations.map((station) => (
-                              <CommandItem
-                                key={station.complexId}
-                                value={`nearby-${station.complexId}`}
-                                onSelect={() => select(station.feature, nearby.radius)}
-                                className={itemWithSublistClass}
-                              >
+                            {nearby.stations.map((station) => {
+                              const onActivate = () => select(station.feature, nearby.radius);
+                              return (
+                                <div
+                                  key={station.complexId}
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={onActivate}
+                                  onKeyDown={activateOnKey(onActivate)}
+                                  className={plainItemWithSublistClass}
+                                >
                                 <span className="flex min-h-14 w-full items-start gap-3 px-4 py-3">
                                   <span className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
                                     <span className="max-w-full truncate text-headline font-semibold">{station.name}</span>
@@ -794,10 +881,11 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                                   </span>
                                 </span>
                                 <OutageBanner status={station.status} count={station.outCount} elevators={station.outElevators} stationRoutes={station.routes} />
-                              </CommandItem>
-                            ))}
+                                </div>
+                              );
+                            })}
                           </div>
-                        </CommandGroup>
+                        </div>
                       )}
                     </section>
 
@@ -809,23 +897,26 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                         </div>
                       </Group>
                     ) : (
-                      <CommandGroup className="overflow-visible p-0">
-                        <Group title={isLoaded ? `Stations with outages · ${outageRows.length}` : "Stations with outages"}>
-                          {outageRows.map((row) => (
-                            <CommandItem
+                      <Group title={isLoaded ? `Stations with outages · ${outageRows.length}` : "Stations with outages"}>
+                        {outageRows.map((row) => {
+                          const onActivate = () => select(row.feature);
+                          return (
+                            <div
                               key={row.key}
-                              value={`outage-${row.key}`}
-                              onSelect={() => select(row.feature)}
-                              className={itemWithSublistClass}
+                              role="button"
+                              tabIndex={0}
+                              onClick={onActivate}
+                              onKeyDown={activateOnKey(onActivate)}
+                              className={plainItemWithSublistClass}
                             >
                               <span className="flex min-h-14 w-full items-center gap-3 px-4 py-3">
                                 <StationLabel name={row.name} routes={Array.from(row.routes)} />
                               </span>
                               <OutageBanner status={row.status} count={row.outElevators.length} elevators={row.outElevators} stationRoutes={Array.from(row.accessibleRoutes)} />
-                            </CommandItem>
-                          ))}
-                        </Group>
-                      </CommandGroup>
+                            </div>
+                          );
+                        })}
+                      </Group>
                     )}
 
                     <Group title="Get in touch">
@@ -842,16 +933,15 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                         </a>
                       ))}
                     </Group>
-                  </>
-                )}
                 {lastUpdated && (
                   <p className="px-4 pb-3 pt-1 text-footnote text-muted-foreground">
                     Last updated: {lastUpdated.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                   </p>
                 )}
-              </CommandList>
+              </div>
               </ScrollEdge>
-            </Command>
+        )}
+        </div>
           )}
     </>
   );
