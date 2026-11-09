@@ -29,7 +29,7 @@ const TAPPABLE_LAYERS = [
   "stationOutages",
   "mta-subway-stations-accessible",
   "mta-subway-stations-inaccessible",
-  "mta-subway-complexes-accessible2",
+  "mta-subway-complexes-accessible-rt",
   "outages",
   "transit-elevators",
 ];

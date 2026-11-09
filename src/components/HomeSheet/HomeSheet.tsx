@@ -2,20 +2,20 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 import { Command as CommandPrimitive } from "cmdk";
 import { matchSorter } from "match-sorter";
-import { Info, Search, X, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
+import { Info, OctagonX, Search, X, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
 import { MaintenanceBadge } from "@/components/StationPopup/StatusBadges";
 import { ROW_PRESS, BUTTON_PRESS, RAISED_BUTTON } from "@/lib/interaction";
 import { Drawer, DrawerPortal, DrawerTitle } from "@/components/ui/drawer";
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
-import { LineBullets } from "@/components/LineBullets/LineBullets";
+import { generateSubwayLines } from "@/utils/generateSubwayLines";
 import { StatusIcon } from "@/components/StatusIcon/StatusIcon";
 import LegendPage from "@/components/Legend/LegendPage";
 import { LocationPin, AccessibleIconWhite } from "@/components/icons";
 import { useNearbyStations, WALKING_RADII, formatWalkingDistance } from "./useNearbyStations";
 import { getComplexesDataset } from "@/lib/dataStore";
 import { getElevatorsByComplexId } from "@/utils/dataUtils";
-import { COMMUNITY_LINKS, ROUTE_ORDER } from "@/utils/constants";
+import { COMMUNITY_LINKS } from "@/utils/constants";
 import { MtaStationData, MtaStationFeature } from "@/utils/types";
 import { cn } from "@/lib/utils";
 
@@ -94,40 +94,12 @@ function StationLabel({ name, routes }: { name: string; routes: string[] }) {
   return (
     <span className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
       <span className="max-w-full truncate text-headline font-semibold">{name}</span>
-      <LineBullets routes={routes} size="sm" />
+      {generateSubwayLines({ routes, size: "sm" })}
     </span>
   );
 }
 
 const toBool = (v: unknown) => v === true || v === "true" || v === "1";
-
-// Real subway route codes only — ROUTE_ORDER also has SIR/LIRR/METRONORTH, which are
-// multi-character and not how elevator shortdescriptions refer to them anyway
-const SUBWAY_ROUTES = new Set(ROUTE_ORDER.filter((r) => r.length === 1));
-// A run of route codes joined by "/" ("B/D", "N/Q/R/W", "7"), as a standalone word so it
-// doesn't match a letter/digit inside an ordinary word (e.g. the "A" in "Area")
-const ROUTE_MENTION = /\b([1-7A-Z](?:\/[1-7A-Z])*)\b/g;
-
-// Splits text into plain-text segments and recognized route mentions (rendered as flat,
-// non-overlapping subway bullets in place of the letters), plus the set of routes found
-function splitOnRouteMentions(text: string): { nodes: React.ReactNode[]; mentioned: Set<string> } {
-  const mentioned = new Set<string>();
-  const nodes: React.ReactNode[] = [];
-  let lastIndex = 0;
-  let key = 0;
-  for (const match of text.matchAll(ROUTE_MENTION)) {
-    const token = match[1];
-    const routes = token.split("/");
-    if (!routes.every((r) => SUBWAY_ROUTES.has(r))) continue; // not every slash-part is a real route — leave as plain text
-    const index = match.index ?? 0;
-    if (index > lastIndex) nodes.push(text.slice(lastIndex, index));
-    routes.forEach((r) => mentioned.add(r));
-    nodes.push(<LineBullets key={key++} routes={routes} size="xs" animated={false} overlap={false} />);
-    lastIndex = index + token.length;
-  }
-  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
-  return { nodes, mentioned };
-}
 
 const setsEqual = (a: Set<string>, b: Set<string>) => a.size === b.size && [...a].every((x) => b.has(x));
 
@@ -138,14 +110,13 @@ function OutElevatorRow({ el, stationRoutes }: { el: any; stationRoutes: string[
   const lines: string[] = (el.properties.linesServed || "").replace(/-/g, "").split("/").join(" ").split(" ").filter(Boolean);
   const linesSet = new Set(lines);
   const shortDesc = el.properties.shortdescription || "";
-  const { nodes: shortDescNodes, mentioned } = splitOnRouteMentions(shortDesc);
-  // Skip the full list if either: the shortdesc's own inline mentions already name every line,
-  // or this elevator already covers every line the station has (nothing left to distinguish —
-  // e.g. a single-line station where every elevator trivially serves everything). Otherwise
-  // (two elevators at the same station can genuinely serve different lines) it's still needed,
-  // shown before the shortdesc text.
+  // shortdesc is free-text prose, not shown through any route-letter parsing — a street name
+  // like "E Mosholu Pkwy" or "E 188 St" would otherwise get misread as the E train. Bullets
+  // only ever come from the real linesServed field, and only when they'd add something: skip
+  // them if this elevator already covers every line the station has (nothing left to
+  // distinguish — e.g. a single-line station where every elevator trivially serves everything).
   const coversStation = stationRoutes.length > 0 && setsEqual(linesSet, new Set(stationRoutes));
-  const showBullets = !isRamp && lines.length > 0 && !setsEqual(mentioned, linesSet) && !coversStation;
+  const showBullets = !isRamp && lines.length > 0 && !coversStation;
 
   return (
     <div className="flex flex-col text-footnote text-muted-foreground">
@@ -153,8 +124,8 @@ function OutElevatorRow({ el, stationRoutes }: { el: any; stationRoutes: string[
           inside a group of bullets would just cut a bullet in half */}
       <span className="text-pretty">
         {isRamp && "Ramp"}
-        {showBullets && <LineBullets routes={lines} size="xs" animated={false} overlap={false} />}
-        {!isRamp && shortDesc && (showBullets ? <> — {shortDescNodes}</> : shortDescNodes)}
+        {showBullets && generateSubwayLines({ routes: lines, size: "xs", animated: false, overlap: false })}
+        {!isRamp && shortDesc && (showBullets ? <> — {shortDesc}</> : shortDesc)}
       </span>
       {el.properties.isRedundant === "1" && (
         <span className="mt-1 text-caption font-semibold text-status-ok-foreground">Alternate path available</span>
@@ -187,13 +158,14 @@ function OutageBanner({
         )}
       >
         {isOut ? "All elevators out" : count > 0 ? `${count} ${count === 1 ? "elevator" : "elevators"} out` : "Some elevators out"}
-        <StatusIcon
-          glyph="alert"
-          className={cn(
-            "size-4",
-            isOut ? "text-status-out" : "text-status-partial [--status-icon-glyph:oklch(var(--status-partial-foreground))]",
-          )}
-        />
+        {isOut ? (
+          <OctagonX className="size-4 text-status-out" strokeWidth={2.5} aria-hidden="true" />
+        ) : (
+          <StatusIcon
+            glyph="alert"
+            className="size-4 text-status-partial [--status-icon-glyph:oklch(var(--status-partial-foreground))]"
+          />
+        )}
       </p>
       {/* "All elevators out" already says it — listing every one of them adds nothing */}
       {!isOut &&
@@ -844,7 +816,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
                                 <span className="flex min-h-14 w-full items-start gap-3 px-4 py-3">
                                   <span className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
                                     <span className="max-w-full truncate text-headline font-semibold">{station.name}</span>
-                                    <LineBullets routes={station.routes} size="sm" />
+                                    {generateSubwayLines({ routes: station.routes, size: "sm" })}
                                     {station.maintenanceLabel && <MaintenanceBadge when={station.maintenanceLabel} />}
                                     {station.adaNotes && (
                                       <span className="flex items-start gap-1 text-caption text-muted-foreground">

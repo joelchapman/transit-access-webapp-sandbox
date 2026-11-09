@@ -1,66 +1,30 @@
-import { mapColors } from "./mapColors";
+import { mapColors, MTA_LINE_COLOR_SUBSTITUTIONS } from "./mapColors";
 import { dotView } from "@/components/MtaMap/layers/CurrentOutages/currentOutagesProps";
 
 // A muted base map in the spirit of Apple Maps' transit view, applied on top of the Mapbox Studio
-// export (mapbox-style.json) when the map is created. The export stays untouched, so it can be
-// re-exported from Studio at any time and this theme still applies.
+// export (mapbox-studio-style.json) when the map is created. The export stays untouched, so it can
+// be re-exported from Studio at any time and these customizations still apply.
 //
 // The subway is the subject: everything underneath is desaturated and low-contrast (roads, highways
 // included, are plain gray-on-white) so the official line colors are the only saturated thing on screen.
 // Every app-specific layer (stations, elevators, connectors) keeps its own styling.
+//
+// Every color here lives in mapColors.ts, not inline — same reason as that file's marker colors:
+// Mapbox paint properties can't resolve CSS variables or parse oklch, so they can't read globals.css.
 
 type Layer = { id: string; type: string; paint?: Record<string, unknown>; layout?: Record<string, unknown>; [k: string]: unknown };
 type Style = { layers: Layer[]; [k: string]: unknown };
-
-const C = {
-  land: "#EFF2F6",
-  landLow: "#F2F5F9",
-  landStreet: "#EFF2F6",
-  park: "#DDEBD5",
-  water: "#B7DCF4",
-  waterLabel: "#14405F",
-  parkLabel: "#2C4D23",
-  road: mapColors.surface,
-  roadCase: "#E1E3E7",
-  majorCase: "#D8DBDE",
-  pavement: "#DADDE1",
-  sidewalk: "#F7FAFE",
-  tunnel: "#EAEDF1",
-  building: "#E4E7EB",
-  buildingEdge: "#D6D9DC",
-  buildingCommercial: "#F1E3C1",
-  buildingCommercialEdge: "#E3D2A9",
-  buildingExtrusion: "#ECEFF3",
-  platform: "#F2A3A3",
-  platformEdge: "#E48686",
-  label: mapColors.label,
-  labelSoft: mapColors.label,
-};
-
-// Official MTA line colors, replacing the Studio style's approximations
-const LINE_COLORS: Record<string, string> = {
-  "hsl(219, 100%, 33%)": "#0039A6", // A C E
-  "hsl(2, 85%, 56%)": "#EE352E", // 1 2 3
-  "hsl(144, 100%, 29%)": "#00933C", // 4 5 6
-  "hsl(19, 100%, 55%)": "#FF6319", // B D F M
-  "#fdcc08": "#FCCC0A", // N Q R W
-  "hsl(305, 57%, 46%)": "#B933AD", // 7
-  "hsl(30, 50%, 40%)": "#996633", // J Z
-  "hsl(101, 48%, 51%)": "#6CBE45", // G
-  "hsl(220, 1%, 51%)": "#808183", // S
-  "hsl(216, 3%, 66%)": "#A7A9AC", // L
-};
 
 // Line weights by zoom: thin, crisp strokes like a transit diagram, never heavier than the streets they follow
 const SUBWAY_WIDTH = ["interpolate", ["linear"], ["zoom"], 10, 1.5, 12, 2.25, 14, 3, 18, 3.75];
 const SUBWAY_CASING_WIDTH = ["interpolate", ["linear"], ["zoom"], 10, 2.5, 12, 3.5, 14, 4.5, 18, 5.5];
 
-// Where trunks share a corridor (Queens Blvd, 8th and 6th Av, Lexington and 7th Av in Brooklyn) their
-// tracks are only ~17m apart, so zoomed out the colors land on top of each other. Each trunk gets a
-// slot, and lines shift by slot × (line width + 1px) to run side by side with a white gap from the
-// casing. Slots follow which side each trunk's track actually sits on, so lines don't cross as the
-// offset fades out; from zoom 14 the real geometry keeps them apart on its own.
-const TRUNK_SLOT = [
+// A few corridors (Queens Blvd, 8th/6th Av, Lexington/7th Av in Brooklyn) carry several subway lines
+// on tracks only ~17m apart — too close to read as separate colors once you're zoomed out. So each
+// group of lines sharing a track gets nudged sideways into its own lane, on whichever side it
+// actually runs, and that nudge fades out by zoom 14, where the real track geometry already
+// spreads them apart enough to speak for itself.
+const LINE_OVERLAP_SHIFT = [
   "match", ["slice", ["get", "name"], 0, 1],
   ["N", "Q", "R", "W", "S"], -1,
   ["1", "2", "3"], -0.5,
@@ -70,9 +34,9 @@ const TRUNK_SLOT = [
 ];
 const SUBWAY_OFFSET = [
   "interpolate", ["linear"], ["zoom"],
-  10, ["*", TRUNK_SLOT, 2.5],
-  12, ["*", TRUNK_SLOT, 3.25],
-  13, ["*", TRUNK_SLOT, 3.6],
+  10, ["*", LINE_OVERLAP_SHIFT, 2.5],
+  12, ["*", LINE_OVERLAP_SHIFT, 3.25],
+  13, ["*", LINE_OVERLAP_SHIFT, 3.6],
   14, 0,
 ];
 
@@ -84,7 +48,7 @@ const byZoom = (far: string, near: string) => ["interpolate", ["linear"], ["zoom
 // Shops, offices and hotels read tan; homes and everything else stay gray
 const COMMERCIAL = ["commercial", "retail", "office", "hotel", "industrial", "warehouse", "supermarket"];
 
-export function applyMapTheme<T>(source: T): T {
+export function applyMapCustomization<T>(source: T): T {
   const style: Style = JSON.parse(JSON.stringify(source));
   const byId = new Map(style.layers.map((l) => [l.id, l]));
   const paint = (id: string, values: Record<string, unknown>) => {
@@ -101,16 +65,16 @@ export function applyMapTheme<T>(source: T): T {
   };
 
   // Land, parks, water
-  const landRamp = ["interpolate", ["linear"], ["zoom"], 9, C.landLow, 11, C.land, STREET_FROM, C.land, STREET_TO, C.landStreet];
+  const landRamp = ["interpolate", ["linear"], ["zoom"], 9, mapColors.landLow, 11, mapColors.land, STREET_FROM, mapColors.land, STREET_TO, mapColors.landStreet];
   paint("land", { "background-color": landRamp });
   paint("land-structure-polygon", { "fill-color": landRamp });
   paint("land-structure-line", { "line-color": landRamp });
   paint("landuse", {
-    "fill-color": ["match", ["get", "class"], ["park", "grass", "wood", "scrub", "pitch", "agriculture"], C.park, C.land],
+    "fill-color": ["match", ["get", "class"], ["park", "grass", "wood", "scrub", "pitch", "agriculture"], mapColors.park, mapColors.land],
   });
-  paint("national-park", { "fill-color": C.park });
-  paint("water", { "fill-color": C.water });
-  paint("waterway", { "line-color": C.water });
+  paint("national-park", { "fill-color": mapColors.park });
+  paint("water", { "fill-color": mapColors.water });
+  paint("waterway", { "line-color": mapColors.water });
 
   // Roads: white with a light gray edge, turning into gray pavement and white sidewalks up close.
   // Highways get no color of their own; they're not the subject
@@ -120,12 +84,12 @@ export function applyMapTheme<T>(source: T): T {
     const isCase = id.includes("-case");
     const isRoad = /navigation$/.test(id) && !/arrow/.test(id);
     if (id.startsWith("tunnel-") && !isCase && id.includes("navigation")) {
-      paint(id, { "line-color": C.tunnel });
+      paint(id, { "line-color": mapColors.tunnel });
     } else if (isCase) {
-      const edge = /primary|secondary|motorway-trunk|major-link/.test(id) ? C.majorCase : C.roadCase;
-      paint(id, { "line-color": byZoom(edge, C.sidewalk) });
+      const edge = /primary|secondary|motorway-trunk|major-link/.test(id) ? mapColors.majorCase : mapColors.roadCase;
+      paint(id, { "line-color": byZoom(edge, mapColors.sidewalk) });
     } else if (isRoad) {
-      paint(id, { "line-color": byZoom(C.road, C.pavement) });
+      paint(id, { "line-color": byZoom(mapColors.surface, mapColors.pavement) });
     }
   }
 
@@ -139,47 +103,48 @@ export function applyMapTheme<T>(source: T): T {
     // underground arrives as "true"/"false" strings; anything not marked underground is drawn
     filter: ["!=", ["to-string", ["get", "underground"]], "true"],
     paint: {
-      "fill-color": ["match", ["get", "type"], COMMERCIAL, C.buildingCommercial, C.building],
-      "fill-outline-color": ["match", ["get", "type"], COMMERCIAL, C.buildingCommercialEdge, C.buildingEdge],
+      "fill-color": ["match", ["get", "type"], COMMERCIAL, mapColors.buildingCommercial, mapColors.building],
+      "fill-outline-color": ["match", ["get", "type"], COMMERCIAL, mapColors.buildingCommercialEdge, mapColors.buildingEdge],
       "fill-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.5, 1],
     },
   });
   paint("building-extrusion", {
-    "fill-extrusion-color": ["match", ["get", "type"], COMMERCIAL, C.buildingCommercial, C.buildingExtrusion],
+    "fill-extrusion-color": ["match", ["get", "type"], COMMERCIAL, mapColors.buildingCommercial, mapColors.buildingExtrusion],
   });
 
   // Station platforms and passages underground: translucent red footprints over the street grid
   paint("building-underground", {
-    "fill-color": C.platform,
-    "fill-outline-color": C.platformEdge,
+    "fill-color": mapColors.platform,
+    "fill-outline-color": mapColors.platformEdge,
     "fill-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0, 16, 0.45],
   });
-  paint("tunnel-path", { "line-color": C.platformEdge });
+  paint("tunnel-path", { "line-color": mapColors.platformEdge });
 
   // Labels: all at least 7:1 on the surfaces they sit on. One gray family, white halos, upright POI names, blue water and green park names
   // Street names small, uppercase and letterspaced, so they read as annotation under the lines
-  paint("road-label-navigation", { "text-color": C.label, "text-halo-color": mapColors.surface, "text-halo-width": 1.25 });
+  paint("road-label-navigation", { "text-color": mapColors.label, "text-halo-color": mapColors.surface, "text-halo-width": 1.25 });
   layout("road-label-navigation", {
     "text-transform": "uppercase",
     "text-letter-spacing": 0.06,
     "text-font": ["DIN Pro Medium", "Arial Unicode MS Regular"],
     "text-size": ["interpolate", ["linear"], ["zoom"], 13, 8, 16, 9.5, 18, 11],
   });
-  paint("poi-label", { "text-color": C.labelSoft, "text-halo-width": 1, "text-halo-blur": 0 });
+  paint("poi-label", { "text-color": mapColors.labelSoft, "text-halo-width": 1, "text-halo-blur": 0 });
   layout("poi-label", { "text-font": ["DIN Pro Medium", "Arial Unicode MS Regular"] });
-  paint("settlement-subdivision-label", { "text-color": C.labelSoft });
+  paint("settlement-subdivision-label", { "text-color": mapColors.labelSoft });
   for (const id of ["water-point-label", "water-line-label", "waterway-label"]) {
-    paint(id, { "text-color": C.waterLabel, "text-halo-color": "rgba(255, 255, 255, 0.7)" });
+    paint(id, { "text-color": mapColors.waterLabel, "text-halo-color": "rgba(255, 255, 255, 0.7)" });
   }
   for (const id of ["natural-point-label", "natural-line-label"]) {
-    paint(id, { "text-color": C.parkLabel });
+    paint(id, { "text-color": mapColors.parkLabel });
   }
 
-  // Subway lines: official colors, solid, with a white casing so parallel and crossing lines separate
+  // Subway lines: official colors, solid, with a white casing so parallel and crossing lines separate.
+  // Skips recoloring bullets because they're redrawn elsewhere
   for (const layer of style.layers) {
-    if (!layer.id.startsWith("mta-")) continue;
+    if (!layer.id.startsWith("mta-") || /^mta-(subwaylines-labels|sir-lines-label)/.test(layer.id)) continue;
     let json = JSON.stringify(layer);
-    for (const [from, to] of Object.entries(LINE_COLORS)) json = json.split(from).join(to);
+    for (const [from, to] of Object.entries(MTA_LINE_COLOR_SUBSTITUTIONS)) json = json.split(from).join(to);
     Object.assign(layer, JSON.parse(json));
   }
   const lines = byId.get("mta-subwaylines-all");
@@ -233,16 +198,16 @@ export function applyMapTheme<T>(source: T): T {
     "text-radial-offset": 0.6,
   });
   paint("mta-subway-stations-inaccessible", {
-    "text-color": C.label,
+    "text-color": mapColors.label,
     // Matches the accessible labels' own threshold: hidden below dotView, same reasoning
-    "text-opacity": ["step", ["zoom"], 0, dotView, 1],
+    "text-opacity": ["step", ["zoom"], 0, dotView+1, 1],
   });
 
   // Street elevators: the app's "outages" layer draws one marker per elevator (components/ElevatorMarker).
   // This export layer keeps the "Street Elevator" labels and tap target, and keeps its icon only for ramps
   const isRamp = ["==", ["slice", ["downcase", ["get", "elevatorno"]], 0, 2], "ra"];
   layout("transit-elevators", { "icon-image": ["case", isRamp, "ramp", ""] });
-  paint("transit-elevators", { "text-color": C.label, "text-halo-color": mapColors.surface, "text-halo-width": 1.25 });
+  paint("transit-elevators", { "text-color": mapColors.label, "text-halo-color": mapColors.surface, "text-halo-width": 1.25 });
 
   return style as T;
 }

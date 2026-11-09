@@ -1,8 +1,8 @@
 export function Line1() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -28,8 +28,8 @@ export function Line1() {
 export function Line2() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -55,8 +55,8 @@ export function Line2() {
 export function Line3() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -82,8 +82,8 @@ export function Line3() {
 export function Line4() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -109,8 +109,8 @@ export function Line4() {
 export function Line5(params) {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -136,8 +136,8 @@ export function Line5(params) {
 export function Line6(params) {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -163,8 +163,8 @@ export function Line6(params) {
 export function Line7(params) {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -190,8 +190,8 @@ export function Line7(params) {
 export function A() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -217,8 +217,8 @@ export function A() {
 export function B(params) {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -244,8 +244,8 @@ export function B(params) {
 export function C() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -271,8 +271,8 @@ export function C() {
 export function D(params) {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -298,8 +298,8 @@ export function D(params) {
 export function E() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -325,8 +325,8 @@ export function E() {
 export function F(params) {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -352,8 +352,8 @@ export function F(params) {
 export function G() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -379,8 +379,8 @@ export function G() {
 export function J() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -406,8 +406,8 @@ export function J() {
 export function L() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -433,8 +433,8 @@ export function L() {
 export function M() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -460,8 +460,8 @@ export function M() {
 export function N() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -487,8 +487,8 @@ export function N() {
 export function Q() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -514,8 +514,8 @@ export function Q() {
 export function R() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -541,8 +541,8 @@ export function R() {
 export function S() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -568,8 +568,8 @@ export function S() {
 export function W() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -595,8 +595,8 @@ export function W() {
 export function Z() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -622,8 +622,8 @@ export function Z() {
 export function SIR() {
   return (
     <svg
-      width="24"
-      height="24"
+      width="18"
+      height="18"
       viewBox="0 0 90 90"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -653,8 +653,8 @@ export function SIR() {
 export function LIRR() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -680,8 +680,8 @@ export function LIRR() {
 export function LIRR_retro() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 2000 2000"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -702,8 +702,8 @@ export function LIRR_retro() {
 export function MNR() {
   return (
     <svg
-      width="36"
-      height="36"
+      width="18"
+      height="18"
       viewBox="0 0 2000 2000"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"

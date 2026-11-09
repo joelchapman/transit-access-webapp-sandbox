@@ -71,7 +71,7 @@ mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 const MOBILE_POPUPSHIFT_DVH = 30; // map shift on mobile (dvh) -- lower value shifts map up
 const DESKTOP_POPUPSHIFT_LEFT = 100; // map shift left on desktop (px)
 const DESKTOP_POPUPSHIFT_TOP = -30; // map shift top on desktop (px)
-// Matches building-extrusion's minzoom in mapbox-style.json/mapTheme.ts — below this,
+// Matches building-extrusion's minzoom in mapbox-studio-style.json/mapCustomization.ts — below this,
 // the layer doesn't render, so the toggle shouldn't either
 const BUILDING_EXTRUSION_MIN_ZOOM = 15;
 // ─────────────────────────────────────────────────────────────────────────────
@@ -526,7 +526,7 @@ const MtaMap = () => {
       // Moves transit elevators layer so it's not hidden by outage layer
       mapRef.current.moveLayer("stationOutages", "transit-elevators");
       mapRef.current.moveLayer(
-        "mta-subway-complexes-accessible2",
+        "mta-subway-complexes-accessible-rt",
         "transit-elevators",
       );
       // The planned-outage wrench is a badge on the elevator marker, so it draws on top of it
@@ -625,7 +625,7 @@ const MtaMap = () => {
         "stationDots", // low-zoom level dot layer
         "stationOutages",
         "mta-subway-stations-accessible",
-        "mta-subway-complexes-accessible2",
+        "mta-subway-complexes-accessible-rt",
         "transit-elevators",
         "outages",
         "mta-subway-stations-inaccessible",
@@ -698,7 +698,7 @@ const MtaMap = () => {
             );
             break;
 
-          case "mta-subway-complexes-accessible2":
+          case "mta-subway-complexes-accessible-rt":
             if (mapRef.current.getZoom() > 15) {
               captureMapPosition();
               let confirmedClick = dealWithMapboxIconOverlap(augmentedEvent);
@@ -764,13 +764,7 @@ const MtaMap = () => {
 
       // Track zoom level separately (one global listener)
       mapRef.current?.on("zoom", () => {
-        const zoom = mapRef.current?.getZoom();
-        setZoomLevel(zoom ?? 0);
-        mapRef.current.setPaintProperty(
-          "mta-subway-stations-accessible",
-          "icon-opacity",
-          ["step", ["zoom"], 0, dotView, 1, 15, 0],
-        );
+        setZoomLevel(mapRef.current?.getZoom() ?? 0);
       });
 
       // Clear birdseye mode once any movement settles above dotView

@@ -5,7 +5,7 @@ import { elevatorView } from "../CurrentOutages/currentOutagesProps";
 import { mapColors } from "@/styles/mapColors";
 
 export const stationComplexProps = {
-  id: "mta-subway-complexes-accessible2",
+  id: "mta-subway-complexes-accessible-rt",
   source: "station-complexes",
   type: "symbol",
   filter: ["match", ["get", "ada"], ["2", "1"], true, false],

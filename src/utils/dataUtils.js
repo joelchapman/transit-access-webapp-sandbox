@@ -20,7 +20,6 @@ const complexesDataset = { get features() { return getComplexesDataset().feature
 const stationsDataset = { get features() { return getStationsDataset().features; } };
 import { setManhattanTilt } from "@/components/MtaMap/mtaMapOptions";
 import { ROUTE_ORDER } from "./constants";
-import { LineBullets } from "@/components/LineBullets/LineBullets";
 
 import { elevatorHighlightProps, elevatorToComplexHighlightProps } from "@/components/MtaMap/layers/StationComplexes/elevatorHighlightsProps";
 
@@ -1206,33 +1205,3 @@ export function highlightElevator(map, activeFlyButton) {
     map.addLayer(elevatorHighlightProps(elevatorId));
   }
 }
-
-export const generateSubwayLines = (
-  routeLines,
-  size,
-  ada,
-  isTitle,
-  styles
-) => {
-  if (!routeLines) return null;
-
-  const lines = routeLines.split(" ").filter(Boolean);
-  const linesText = lines.join(", ");
-
-  return (
-    <>
-      <span className="sr-only">
-        {ada === "0"
-          ? `${isTitle ? "Inaccessible subway lines:" : ""} ${linesText} ${isTitle ? "not A.D.A. accessible" : ""}`
-          : `${isTitle ? "Accessible subway lines:" : ""} ${linesText}`}
-      </span>
-      {/* Screen reader only text, leave for future version */}
-      {/* <span className="sr-only">
-        {accessibilityLabel}
-      </span> */}
-
-      {/* Visual icons hidden from screen readers */}
-      <LineBullets routes={lines} size={size === "big" ? "lg" : "sm"} />
-    </>
-  );
-};

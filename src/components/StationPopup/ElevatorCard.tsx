@@ -4,7 +4,7 @@ import { MapPin, ArrowUpRight } from "lucide-react";
 import { ElevatorStatusMark, InServicePill, OutOfServicePill, AccessTipBadge, OutagePlannedBadge, MaintenanceBadge, RedundantBadge } from "./StatusBadges";
 import { ROW_PRESS, EXPAND_EASE } from "@/lib/interaction";
 import { AccessTipNote, PlannedOutageNotes, ElevatorFooter } from "./ElevatorNotes";
-import { LineBullets } from "@/components/LineBullets/LineBullets";
+import { generateSubwayLines } from "@/utils/generateSubwayLines";
 import {
   highlightElevator,
   walkingDistanceMiles,
@@ -155,8 +155,11 @@ const ElevatorCard: React.FC<{
           {/* Fills the row's height: title at the top, status pinned to the bottom, lining up with the photo */}
           <span className="flex min-w-0 flex-1 flex-col justify-between gap-1">
             <span className="flex flex-col gap-1">
-              <span className="flex flex-wrap items-center gap-1.5 text-headline font-semibold text-pretty">
-                <ElevatorStatusMark isOut={showsOut} />
+              {/* One plain inline span, icon included — not flex — so the whole phrase wraps as
+                  ordinary prose. A flex row would park the icon in its own column and indent every
+                  wrapped line to match it; this way a wrapped second line just starts flush left. */}
+              <span className="text-headline font-semibold text-pretty">
+                <ElevatorStatusMark isOut={showsOut} className="mr-1 align-middle" />
                 {isRamp ? "Ramp" : isStreet ? "Street elevator" : (
                   <>
                     Elevator to {elevator.isBridge ? "overpass to " : ""}
@@ -165,7 +168,7 @@ const ElevatorCard: React.FC<{
                 )}
                 {routes.length > 0 && (
                   <>
-                    <LineBullets routes={routes} size="sm" animated={false} />
+                    {generateSubwayLines({ routes, size: "sm", animated: false, className: "mx-1" })}
                     {/* The bullets are aria-hidden */}
                     <span className="sr-only">{routes.join(", ")}</span>
                   </>

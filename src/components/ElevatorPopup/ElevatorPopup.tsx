@@ -13,7 +13,7 @@ import {
   PlannedOutageNotes,
   ElevatorFooter,
 } from "@/components/StationPopup/ElevatorNotes";
-import { LineBullets } from "@/components/LineBullets/LineBullets";
+import { generateSubwayLines } from "@/utils/generateSubwayLines";
 
 // Opens when an elevator is tapped on the map: the same elevator as a station-list row, opened,
 // so it uses the row's title rule, pills, badges and detail blocks.
@@ -56,7 +56,7 @@ const ElevatorPopup: React.FC<ElevatorPopupProps> = ({
           {title}
           {routes.length > 0 && (
             <>
-              <LineBullets routes={routes} size="sm" animated={false} />
+              {generateSubwayLines({ routes, size: "sm", animated: false })}
               {/* The bullets are aria-hidden */}
               <span className="sr-only">{routes.join(", ")}</span>
             </>

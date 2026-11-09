@@ -12,12 +12,14 @@ type PillSize = "row" | "summary";
 
 const TONES: Record<StatusTone, { surface: string; icon?: string; glyph?: "check" | "alert" }> = {
   ok: { surface: "bg-status-ok-muted text-status-ok-foreground", icon: "text-status-ok", glyph: "check" },
+  // Some elevators out (isProblem) — a caution, not a shutdown, so it keeps the plain alert glyph
   partial: { surface: "bg-status-partial-muted text-status-partial-foreground", icon: "text-status-partial", glyph: "alert" },
-  // Fully out is the one state drawn solid, wherever it appears
+  // Fully out is the one state drawn solid, wherever it appears. Its icon is the octagon X used
+  // everywhere else for "out of service" (StationMarker, ElevatorMarker, ElevatorStatusMark), not
+  // a StatusIcon glyph — handled as a special case below, not through the glyph mechanism.
   out: {
     surface: "bg-status-out text-status-out-on",
     icon: "text-status-out-on [--status-icon-glyph:oklch(var(--status-out))]",
-    glyph: "alert",
   },
   neutral: { surface: "bg-fill-subtle text-foreground" },
 };
@@ -36,22 +38,29 @@ export function StatusPill({
   tone: StatusTone;
   children: React.ReactNode;
   size?: PillSize;
-  // Overrides the tone's default StatusIcon glyph, e.g. the octagon X used for "out of service"
-  // everywhere else on the map and in the station card, instead of the plain alert disc
+  // Overrides the tone's default icon — e.g. the "Not ADA accessible" pill reuses tone="out" for
+  // its red styling but isn't an outage, so it swaps in AccessibleIconFalse instead of octagon X
   icon?: React.ReactNode;
 }) {
   const t = TONES[tone];
   const s = SIZES[size];
+  const defaultIcon =
+    tone === "out" ? (
+      <OctagonX className={cn(s.icon, t.icon)} strokeWidth={2.5} aria-hidden="true" />
+    ) : (
+      t.glyph && <StatusIcon glyph={t.glyph} className={cn(s.icon, t.icon)} />
+    );
+  const hasIcon = icon !== undefined || tone === "out" || !!t.glyph;
   return (
     <span
       className={cn(
         "inline-flex shrink-0 items-center rounded-full font-semibold",
         s.pill,
-        !t.glyph && !icon && (size === "row" ? "pl-2" : "pl-3"),
+        !hasIcon && (size === "row" ? "pl-2" : "pl-3"),
         t.surface,
       )}
     >
-      {icon ?? (t.glyph && <StatusIcon glyph={t.glyph} className={cn(s.icon, t.icon)} />)}
+      {icon ?? defaultIcon}
       {children}
     </span>
   );
@@ -65,7 +74,9 @@ export const InServicePill = ({ label = "In service" }: { label?: string }) => (
 // title. A working elevator gets nothing. Decorative: pair it with screen-reader text.
 export const ElevatorStatusMark = ({ isOut, className }: { isOut: boolean; className?: string }) =>
   isOut ? (
-    <OctagonX aria-hidden="true" strokeWidth={2.5} className={cn("size-[1.1em] shrink-0 text-status-out", className)} />
+    // Tailwind's preflight resets every svg to display:block — override so this still flows inline
+    // in a non-flex title (e.g. ElevatorCard) instead of forcing the text onto the next line.
+    <OctagonX aria-hidden="true" strokeWidth={2.5} className={cn("inline size-[1.1em] shrink-0 text-status-out", className)} />
   ) : null;
 
 export const OutOfServicePill = () => <StatusPill tone="out">Out of service</StatusPill>;

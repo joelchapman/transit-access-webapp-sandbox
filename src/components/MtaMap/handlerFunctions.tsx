@@ -623,7 +623,7 @@ function handleStationClick(feature: any) {
       ada_notes,
       inaccessibleRoutes,
     },
-    layer: { id: "mta-subway-complexes-accessible" },
+    layer: { id: "mta-subway-complexes-accessible-rt" },
   };
 
   return complexFeature;
@@ -899,7 +899,7 @@ export function handleOnClick(
     showPopup(coordinates, mapRef, onClickPopupRef, popupDiv, root);
   }
 
-  if (layerId === "mta-subway-complexes-accessible2") {
+  if (layerId === "mta-subway-complexes-accessible-rt") {
     handleStationComplexClick(
       root,
       feature,

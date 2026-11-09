@@ -1,5 +1,5 @@
 import React from "react";
-import { MTA_SUBWAY_LINE_ICONS_SMALL } from "@/utils/constants";
+import { MTA_SUBWAY_LINE_ICONS } from "@/utils/constants";
 import { cn } from "@/lib/utils";
 
 // --fan is how far each bullet slides to undo its overlap (overlap + a 2px gap). Touch screens can't
@@ -26,7 +26,7 @@ const FLAT_SIZES = {
 const FAN_OUT =
   "[@media(hover:hover)]:group-hover/lines:translate-x-[calc(var(--i)*var(--fan))] [@media(hover:hover)]:group-hover/row:translate-x-[calc(var(--i)*var(--fan))]";
 
-interface LineBulletsProps {
+interface GenerateSubwayLinesOptions {
   routes: string[];
   size?: keyof typeof SIZES;
   className?: string;
@@ -35,10 +35,28 @@ interface LineBulletsProps {
   // False for a flat, evenly-spaced row (e.g. bullets sitting inline within a sentence) instead
   // of the overlapping stack — there's nothing to fan out then, so animated has no effect
   overlap?: boolean;
+  // Station accessibility, "0" = inaccessible. When given, an sr-only summary ("Accessible subway
+  // lines: A, C" / "Inaccessible subway lines: A, C not A.D.A. accessible") is generated alongside
+  // the bullets. Omit it when the caller already provides its own screen-reader text.
+  ada?: string;
+  // Adds the "Accessible/Inaccessible subway lines:" label and, when inaccessible, the trailing
+  // "not A.D.A. accessible" — used for a station's own title row, not a quieter inline mention
+  isTitle?: boolean;
 }
 
-export function LineBullets({ routes, size = "md", className, animated = true, overlap = true }: LineBulletsProps) {
-  return (
+// Called as a plain function, not a JSX component — matches how this was called before the
+// visual rework (generateSubwayLines(routeLines, size, ada, isTitle, styles)), just with a single
+// options object instead of positional args now that there's more to configure.
+export function generateSubwayLines({
+  routes,
+  size = "md",
+  className,
+  animated = true,
+  overlap = true,
+  ada,
+  isTitle = false,
+}: GenerateSubwayLinesOptions) {
+  const bullets = (
     <span
       className={cn(
         // leading-[0] removes the line box's half-leading, which is what actually made
@@ -59,13 +77,28 @@ export function LineBullets({ routes, size = "md", className, animated = true, o
             overlap && animated && FAN_OUT,
           )}
         >
-          {MTA_SUBWAY_LINE_ICONS_SMALL[route] ?? (
-            <span className="text-caption font-bold">{route}</span>
-          )}
+          {MTA_SUBWAY_LINE_ICONS[route] ?? <span className="text-caption font-bold">{route}</span>}
         </span>
       ))}
     </span>
   );
+
+  if (ada === undefined) return bullets;
+
+  // Comma-joined so a screen reader pauses between each line instead of running
+  // letters/numbers together (e.g. "4, 5, 6", not "456")
+  const linesText = routes.join(", ");
+  const srText =
+    ada === "0"
+      ? `${isTitle ? "Inaccessible subway lines:" : ""} ${linesText} ${isTitle ? "not A.D.A. accessible" : ""}`
+      : `${isTitle ? "Accessible subway lines:" : ""} ${linesText}`;
+
+  return (
+    <>
+      <span className="sr-only">{srText}</span>
+      {bullets}
+    </>
+  );
 }
 
-export default LineBullets;
+export default generateSubwayLines;

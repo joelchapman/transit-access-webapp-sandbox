@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { OctagonX } from "lucide-react";
 import ElevatorCard from "./ElevatorCard";
 import { Note } from "@/components/Note/Note";
 import { StatusPill } from "./StatusBadges";
@@ -12,8 +11,8 @@ import {
   Ramp,
 } from "../icons";
 import { StationMarker } from "@/components/StationMarker/StationMarker";
+import { generateSubwayLines } from "@/utils/generateSubwayLines";
 import { StationPopupProps } from "@/utils/types";
-import { generateSubwayLines } from "@/utils/dataUtils";
 import { StatusIcon } from "@/components/StatusIcon/StatusIcon";
 import { cn } from "@/lib/utils";
 
@@ -96,12 +95,8 @@ const StationPopup: React.FC<StationPopupProps> = ({
   // Shown only when something is out: counts the elevators still working, or says none are
   const outageLabel =
     oosCount < totalElevators
-      ? `${totalElevators - oosCount} of ${totalElevators} elevators in service`
+      ? `${oosCount} of ${totalElevators} elevators out of service`
       : "All elevators out of service";
-
-  const getSubwayLinesText = (lines: string) => {
-    return lines.split(" ").filter(Boolean).join(", ");
-  };
 
   const buildEquipmentText = (totalElevators: number, totalRamps: number) => {
     if (totalElevators === 0 && totalRamps === 0)
@@ -270,44 +265,33 @@ const StationPopup: React.FC<StationPopupProps> = ({
       </div>
       <div ref={contentAreaRef} className={styles.popupContent}>
         <section id="station-info">
-          {/* Accessible Subway lines */}
-          <h2 className={`${styles.stationRouteWrapper}`}>
-            {isAccessible
-              ? generateSubwayLines(route, "big", ada, true, styles) // true/false indicates isTitle
-              : generateSubwayLines(
-                  inaccessibleRoutes,
-                  "big",
-                  ada,
-                  true,
-                  styles,
-                )}
+          {/* Accessible subway lines */}
+          <h2 className="flex items-center gap-2 px-4 pb-3">
+            {generateSubwayLines({
+              routes: (isAccessible ? route : inaccessibleRoutes)?.split(" ").filter(Boolean) ?? [],
+              size: "lg",
+              ada,
+              isTitle: true,
+            })}
           </h2>
 
           {/* Inaccessible lines section */}
           {inaccessibleRoutes && ada !== "0" && (
-            <h2 className={`${styles.stationRouteWrapper}`}>
-              {inaccessibleRoutes ? (
-                <>
-                  {generateSubwayLines(
-                    inaccessibleRoutes,
-                    "small",
-                    "0",
-                    true,
-                    styles,
-                  )}{" "}
-                  {/* // true/false indicates isTitle */}
-                  <div className={styles.adaNotesWrapper} aria-hidden="true">
-                    <span>
-                      not<span aria-hidden="true"> ADA </span>
-                      <span className="sr-only">A.D.A.</span>
-                      accessible
-                    </span>
-                    <AccessibleIconFalse size={15} fill="oklch(var(--foreground))" />
-                  </div>
-                </>
-              ) : (
-                ""
-              )}
+            <h2 className="flex items-center gap-2 px-4 pb-3">
+              {generateSubwayLines({
+                routes: inaccessibleRoutes.split(" ").filter(Boolean),
+                size: "sm",
+                ada: "0",
+                isTitle: true,
+              })}
+              <div className="ml-1 flex items-center gap-1 text-caption font-light text-foreground" aria-hidden="true">
+                <span>
+                  not<span aria-hidden="true"> ADA </span>
+                  <span className="sr-only">A.D.A.</span>
+                  accessible
+                </span>
+                <AccessibleIconFalse size={15} fill="oklch(var(--foreground))" />
+              </div>
             </h2>
           )}
           {complexAlert.length > 0 && (
@@ -343,20 +327,18 @@ const StationPopup: React.FC<StationPopupProps> = ({
         {/* Equipment summary */}
         <section className="mx-4 flex flex-wrap gap-2 pb-1">
           {ada === "0" && (
-            <StatusPill tone="out" size="summary">
+            // Reuses tone="out" for its red styling, but this isn't an outage — swap the default
+            // octagon X for AccessibleIconFalse, matching this page's own "not accessible" language
+            <StatusPill
+              tone="out"
+              size="summary"
+              icon={<AccessibleIconFalse size={16} fill="oklch(var(--status-out-on))" />}
+            >
               Not ADA accessible
             </StatusPill>
           )}
           {oosCount > 0 && (
-            <StatusPill
-              tone={oosCount === totalElevators ? "out" : "partial"}
-              size="summary"
-              icon={
-                oosCount === totalElevators ? (
-                  <OctagonX className="size-4 text-status-out-on" strokeWidth={2.5} aria-hidden="true" />
-                ) : undefined
-              }
-            >
+            <StatusPill tone={oosCount === totalElevators ? "out" : "partial"} size="summary">
               {outageLabel}
             </StatusPill>
           )}
