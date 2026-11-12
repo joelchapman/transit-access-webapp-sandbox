@@ -1,3 +1,9 @@
+// One raw icon per subway/rail line, looked up by route letter via MTA_SUBWAY_LINE_ICONS
+// (utils/constants.js). Two other things also render line "bullets" but are NOT this file:
+// utils/generateSubwayLines.tsx arranges these icons into the fanned-out bullet groups used
+// in lists and titles; icons/rasterized/rasterizeRouteBullets.ts draws its own bullets directly on the map canvas
+// with its own hardcoded colors, never importing these components at all.
+
 export function Line1() {
   return (
     <svg

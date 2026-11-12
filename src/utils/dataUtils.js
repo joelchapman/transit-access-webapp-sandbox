@@ -9,7 +9,7 @@ import { elevatorCoordinates } from "./elevatorOutageGeometry";
 import { stationCoordinates } from "./accessibleStationGeometry";
 import { stationGeometry } from "./stationGeometry";
 import { complexCoordinates } from "./ComplexGeometry";
-import { getComplexBoundaryGeoJSON } from "@/components/MtaMap/layers/StationComplexes/complexBoundaries";
+import { getComplexBoundaryGeoJSON } from "@/components/maps/layers/StationComplexes/complexBoundaries";
 import { parse, isToday, isTomorrow, isThisWeek, format, formatDistanceToNow, formatDistance, differenceInDays } from "date-fns";
 
 import { getElevatorsDataset, getComplexesDataset, getStationsDataset } from "@/lib/dataStore";
@@ -18,10 +18,10 @@ import { getElevatorsDataset, getComplexesDataset, getStationsDataset } from "@/
 const customElevatorDataset = { get features() { return getElevatorsDataset().features; } };
 const complexesDataset = { get features() { return getComplexesDataset().features; } };
 const stationsDataset = { get features() { return getStationsDataset().features; } };
-import { setManhattanTilt } from "@/components/MtaMap/mtaMapOptions";
+import { setManhattanTilt } from "@/components/maps/mtaMapOptions";
 import { ROUTE_ORDER } from "./constants";
 
-import { elevatorHighlightProps, elevatorToComplexHighlightProps } from "@/components/MtaMap/layers/StationComplexes/elevatorHighlightsProps";
+import { elevatorHighlightProps, elevatorToComplexHighlightProps } from "@/components/maps/layers/StationComplexes/elevatorHighlightsProps";
 
 // make a map of elevator # tied to stationID and complexID
 import {

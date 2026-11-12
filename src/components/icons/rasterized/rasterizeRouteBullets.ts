@@ -1,13 +1,18 @@
 import mapboxgl from "mapbox-gl";
-import { mapColors } from "@/styles/mapColors";
+import { mapColors, MTA_LINE_COLORS } from "@/styles/mapColors";
 
-// Line bullets on the tracks, placed the way Apple Maps does it: a group like A·C·E runs along the
-// line one bullet after another, but every bullet stays upright. Mapbox's own line labels can only do
-// one or the other, so after each zoom or pan this walks the visible track geometry, lays groups out
-// at a fixed screen spacing, and hands the bullet positions to a plain point layer.
+// Route bullets on the subway lines, placed the way Apple Maps does it: a group like A·C·E runs
+// along the line one bullet after another, but every bullet stays upright. Mapbox's own line labels
+// can only do one or the other, so after each zoom or pan this walks the visible line geometry, lays
+// groups out at a fixed screen spacing, and hands the bullet positions to a plain point layer.
+//
+// No DOM involved at all: each bullet is drawn straight onto an offscreen canvas (drawBullet below)
+// and registered as a Mapbox image, unlike the icons/variants components rasterizeMarkers.tsx
+// rasterizes from real React elements. There's no connection between the two — this is its own
+// bullet system.
 
-const SOURCE = "theme-track-bullets";
-const LAYER = "theme-track-bullets";
+const SOURCE = "theme-route-bullets";
+const LAYER = "theme-route-bullets";
 const BEFORE_LAYER = "directionLabel_east"; // above the lines, below stations and elevators
 const MIN_ZOOM = 13;
 
@@ -17,15 +22,6 @@ const GAP = 1.5; // between bullets in a group
 const STEP = BULLET + RING * 2 + GAP; // centre to centre along the track
 const GROUP_SPACING = 280; // between groups on the same line, screen px
 
-const COLORS: Record<string, string> = {
-  A: "#0039A6", C: "#0039A6", E: "#0039A6",
-  "1": "#EE352E", "2": "#EE352E", "3": "#EE352E",
-  "4": "#00933C", "5": "#00933C", "6": "#00933C",
-  B: "#FF6319", D: "#FF6319", F: "#FF6319", M: "#FF6319",
-  N: "#FCCC0A", Q: "#FCCC0A", R: "#FCCC0A", W: "#FCCC0A",
-  "7": "#B933AD", J: "#996633", Z: "#996633", G: "#6CBE45",
-  L: "#A7A9AC", S: "#808183", SIR: "#0039A6",
-};
 // Yellow bullets carry black letters, as on MTA signage
 const DARK_TEXT = new Set(["N", "Q", "R", "W"]);
 const imageId = (route: string) => `theme-bullet-${route}`;
@@ -44,7 +40,7 @@ function drawBullet(route: string, ratio: number) {
   ctx.fill();
   ctx.beginPath();
   ctx.arc(c, c, BULLET / 2, 0, Math.PI * 2);
-  ctx.fillStyle = COLORS[route];
+  ctx.fillStyle = MTA_LINE_COLORS[route];
   ctx.fill();
   ctx.fillStyle = DARK_TEXT.has(route) ? mapColors.ink : mapColors.surface;
   ctx.font = `700 ${route.length > 1 ? 5 : 8.5}px -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif`;
@@ -94,7 +90,7 @@ function layoutBullets(map: mapboxgl.Map): GeoJSON.FeatureCollection {
 
   for (const track of tracks) {
     const name = String(track.properties?.name ?? "");
-    const routes = name === "SIR" ? ["SIR"] : name.split("-").filter((r) => COLORS[r]);
+    const routes = name === "SIR" ? ["SIR"] : name.split("-").filter((r) => MTA_LINE_COLORS[r]);
     if (routes.length === 0) continue;
     const geom = track.geometry;
     const parts =
@@ -140,10 +136,10 @@ function layoutBullets(map: mapboxgl.Map): GeoJSON.FeatureCollection {
 }
 
 /** Call once with the new map. Adds the bullet layer on load and keeps it laid out as the view changes. */
-export function attachTrackBullets(map: mapboxgl.Map) {
+export function attachRouteBullets(map: mapboxgl.Map) {
   map.on("styleimagemissing", ({ id }: { id: string }) => {
     const route = id.startsWith("theme-bullet-") ? id.slice("theme-bullet-".length) : null;
-    if (!route || !COLORS[route] || map.hasImage(id)) return;
+    if (!route || !MTA_LINE_COLORS[route] || map.hasImage(id)) return;
     const ratio = Math.max(2, Math.ceil(window.devicePixelRatio || 1));
     const image = drawBullet(route, ratio);
     if (image) map.addImage(id, image, { pixelRatio: ratio });

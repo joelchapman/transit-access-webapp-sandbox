@@ -1,22 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
 import ElevatorCard from "./ElevatorCard";
-import { Note } from "@/components/Note/Note";
-import { StatusPill } from "./StatusBadges";
-import styles from "@/components/StationPopup/station-popup.module.css";
+import { Note } from "@/components/notes/Note";
+import { StatusPill } from "@/components/pills/StatusPills";
+import styles from "@/components/pages/station-page.module.css";
 import {
-  AccessibleIconWhite,
-  AccessibleIconFalse,
+  AccessibleWhite,
+  AccessibleFalse,
   StationComplexDot,
-  WarnIcon,
+  Warn,
   Ramp,
 } from "../icons";
-import { StationMarker } from "@/components/StationMarker/StationMarker";
+import { AlertStatus } from "../icons/variants/AlertStatus";
+import { StationMarker } from "../icons/variants/StationMarker";
 import { generateSubwayLines } from "@/utils/generateSubwayLines";
-import { StationPopupProps } from "@/utils/types";
-import { StatusIcon } from "@/components/StatusIcon/StatusIcon";
+import { StationPageProps } from "@/utils/types";
 import { cn } from "@/lib/utils";
 
-const StationPopup: React.FC<StationPopupProps> = ({
+const StationPage: React.FC<StationPageProps> = ({
   complexName,
   elevators,
   totalElevators,
@@ -253,7 +253,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
             </span>
           ) : (
             <span className="grid shrink-0 place-items-center rounded-lg bg-status-out-muted p-1" aria-hidden="true">
-              <AccessibleIconFalse fill="oklch(var(--status-out))" size={20} aria-hidden="true" />
+              <AccessibleFalse fill="oklch(var(--status-out))" size={20} aria-hidden="true" />
             </span>
           )}
           <span className="sr-only">
@@ -290,7 +290,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
                   <span className="sr-only">A.D.A.</span>
                   accessible
                 </span>
-                <AccessibleIconFalse size={15} fill="oklch(var(--foreground))" />
+                <AccessibleFalse size={15} fill="oklch(var(--foreground))" />
               </div>
             </h2>
           )}
@@ -302,7 +302,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
                   role="status"
                   tone="partial"
                   title="Station alert"
-                  icon={<StatusIcon glyph="alert" className="text-status-partial [--status-icon-glyph:oklch(var(--status-partial-foreground))]" />}
+                  icon={<AlertStatus glyph="alert" className="text-status-partial [--status-icon-glyph:oklch(var(--status-partial-foreground))]" />}
                 >
                   {renderAlertWithLinks(alert)}
                 </Note>
@@ -317,7 +317,7 @@ const StationPopup: React.FC<StationPopupProps> = ({
               aria-label={`Station accessibility notes: Accessible ${ada_notes}`}
             >
               <span aria-hidden="true" className="shrink-0">
-                <AccessibleIconWhite size={16} fill="currentColor" />
+                <AccessibleWhite size={16} fill="currentColor" />
               </span>
               <span aria-hidden="true">{ada_notes}</span>
             </div>
@@ -328,11 +328,11 @@ const StationPopup: React.FC<StationPopupProps> = ({
         <section className="mx-4 flex flex-wrap gap-2 pb-1">
           {ada === "0" && (
             // Reuses tone="out" for its red styling, but this isn't an outage — swap the default
-            // octagon X for AccessibleIconFalse, matching this page's own "not accessible" language
+            // octagon X for AccessibleFalse, matching this page's own "not accessible" language
             <StatusPill
               tone="out"
               size="summary"
-              icon={<AccessibleIconFalse size={16} fill="oklch(var(--status-out-on))" />}
+              icon={<AccessibleFalse size={16} fill="oklch(var(--status-out-on))" />}
             >
               Not ADA accessible
             </StatusPill>
@@ -444,4 +444,4 @@ const StationPopup: React.FC<StationPopupProps> = ({
   );
 };
 
-export default StationPopup;
+export default StationPage;

@@ -8,8 +8,8 @@ import {
   DEFAULT_ZOOM,
 } from "./mtaMapOptions";
 import React from "react";
-import { attachTrackBullets } from "./trackBullets";
-import { attachStationMarkers } from "./stationMarkerImages";
+import { attachRouteBullets } from "@/components/icons/rasterized/rasterizeRouteBullets";
+import { attachMarkerImages } from "@/components/icons/rasterized/rasterizeMarkers";
 import { createRoot, type Root } from "react-dom/client";
 
 // DATASETS
@@ -65,15 +65,15 @@ import {
 } from "@/utils/dataUtils";
 import { stationIDToComplexID } from "@/utils/elevatorIndexUtils";
 
-// POPUPS
-import ElevatorPopup, {
+// SHEET PAGES (station/elevator details) + the one real hover popup that remains
+import ElevatorPage, {
   OnHoverElevatorPopup,
-} from "../ElevatorPopup/ElevatorPopup";
-import StationComplexPopup from "../StationPopup/StationPopup";
+} from "../pages/ElevatorPage";
+import StationPage from "../pages/StationPage";
 import { formatDate } from "date-fns";
 
-let currentPopupRoot: Root | null = null;
-let currentPopupDiv: HTMLElement | null = null;
+let currentPageRoot: Root | null = null;
+let currentPageDiv: HTMLElement | null = null;
 let manhattanPolygon: number[][][][] | null = null;
 
 // TEMPORARY POPUP REFRESH UNTIL JOEL REWIRES POPUP BEHAVIOR (leftover from Mapbox Popup)
@@ -107,8 +107,8 @@ export const initializeMtaMap = (
   const mtaMapOptions = getMtaMapOptions(mapContainer.current, mapRefPitch);
 
   mapRef.current = new mapboxgl.Map(mtaMapOptions);
-  attachTrackBullets(mapRef.current);
-  attachStationMarkers(mapRef.current);
+  attachRouteBullets(mapRef.current);
+  attachMarkerImages(mapRef.current);
 
   const zoomControl = new mapboxgl.NavigationControl({
     visualizePitch: true,
@@ -236,29 +236,23 @@ export function setSheetHost(host: SheetHost | null) {
   sheetHost = host;
 }
 
-export function showPopup(
-  _coordinates: mapboxgl.LngLatLike,
-  _mapRef: mapboxgl.Map,
-  _popupRef: React.RefObject<mapboxgl.Popup>,
-  popupDiv: HTMLElement,
-  root: Root,
-) {
-  if (currentPopupRoot && currentPopupRoot !== root) currentPopupRoot.unmount();
-  if (currentPopupDiv && currentPopupDiv !== popupDiv) currentPopupDiv.remove();
+export function showSheetPage(pageDiv: HTMLElement, root: Root) {
+  if (currentPageRoot && currentPageRoot !== root) currentPageRoot.unmount();
+  if (currentPageDiv && currentPageDiv !== pageDiv) currentPageDiv.remove();
 
-  currentPopupRoot = root;
-  currentPopupDiv = popupDiv;
-  sheetHost?.show(popupDiv);
+  currentPageRoot = root;
+  currentPageDiv = pageDiv;
+  sheetHost?.show(pageDiv);
 }
 
-export function cleanUpPopups() {
-  if (currentPopupRoot) {
-    currentPopupRoot.unmount();
-    currentPopupRoot = null;
+export function clearSheetPage() {
+  if (currentPageRoot) {
+    currentPageRoot.unmount();
+    currentPageRoot = null;
   }
-  if (currentPopupDiv) {
-    currentPopupDiv.remove();
-    currentPopupDiv = null;
+  if (currentPageDiv) {
+    currentPageDiv.remove();
+    currentPageDiv = null;
   }
   currentPopupRefresh = null;
   sheetHost?.hide();
@@ -330,7 +324,7 @@ function handleElevatorClick(
     : [];
 
   root.render(
-    <ElevatorPopup
+    <ElevatorPage
       ada={ada}
       key={popupKey}
       title={title}
@@ -352,7 +346,7 @@ function handleElevatorClick(
 }
 
 // ---------------------------------------
-// 🟫 Case 2: Station Complex Popup
+// 🟫 Case 2: Station Complex Details
 // ---------------------------------------
 function handleStationComplexClick(
   root,
@@ -535,9 +529,9 @@ function handleStationComplexClick(
       setStationView,
     );
   }
-  // Popup render
+  // Page render
   root.render(
-    <StationComplexPopup
+    <StationPage
       ada={ada}
       route={route}
       inaccessibleRoutes={inaccessibleRoutes}
@@ -631,7 +625,6 @@ function handleStationClick(feature: any) {
 
 export function handleSearchPopup(
   feature: any,
-  onClickPopupRef: any,
   mapRef,
   elevatorData: any,
   upcomingElevatorData: any,
@@ -662,10 +655,10 @@ export function handleSearchPopup(
       feature.geometry.coordinates[1] > coordinates[0] ? 360 : -360;
   }
 
-  cleanUpPopups();
-  const popupDiv = document.createElement("div");
-  document.body.appendChild(popupDiv);
-  const root = createRoot(popupDiv);
+  clearSheetPage();
+  const pageDiv = document.createElement("div");
+  document.body.appendChild(pageDiv);
+  const root = createRoot(pageDiv);
 
   const matchingComplex = mtaComplexesDataset.features.find(
     (f: any) => f.properties?.complex_id === complex_id,
@@ -710,7 +703,7 @@ export function handleSearchPopup(
     walkingToleranceMiles,
   );
 
-  showPopup(coordinates, mapRef, onClickPopupRef, popupDiv, root);
+  showSheetPage(pageDiv, root);
 }
 
 //---------------------------------------
@@ -718,7 +711,6 @@ export function handleSearchPopup(
 // ---------------------------------------
 export function handleOnClick(
   e: any,
-  onClickPopupRef: any,
   mapRef: any,
   elevatorData: any,
   upcomingElevatorData: any,
@@ -744,12 +736,12 @@ export function handleOnClick(
     coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
   }
 
-  cleanUpPopups();
-  const popupDiv = document.createElement("div");
-  document.body.appendChild(popupDiv);
-  const root = createRoot(popupDiv);
+  clearSheetPage();
+  const pageDiv = document.createElement("div");
+  document.body.appendChild(pageDiv);
+  const root = createRoot(pageDiv);
 
-  // If it's an elevator, show one elevator popup
+  // If it's an elevator, show its details
   if (layerId === "transit-elevators") {
     handleElevatorClick(
       root,
@@ -758,10 +750,10 @@ export function handleOnClick(
       upcomingElevatorData,
       lastUpdated,
     );
-    showPopup(coordinates, mapRef, onClickPopupRef, popupDiv, root);
+    showSheetPage(pageDiv, root);
   }
 
-  // if it's the elevator outage symbol that was clicked, also show the elevator popup (makes it all more clickable)
+  // if it's the elevator outage symbol that was clicked, also show the elevator's details (makes it all more clickable)
   if (layerId === "outages") {
     const outageElevatorNo = feature.properties.elevatorno;
 
@@ -794,16 +786,10 @@ export function handleOnClick(
       upcomingElevatorData,
       lastUpdated,
     );
-    showPopup(
-      matchingElevator.geometry.coordinates as [number, number],
-      mapRef,
-      onClickPopupRef,
-      popupDiv,
-      root,
-    );
+    showSheetPage(pageDiv, root);
   }
 
-  // if it's the station-outage symbol OR the low-zoom dot that was clicked, show the station popup
+  // if it's the station-outage symbol OR the low-zoom dot that was clicked, show the station's details
   if (layerId === "stationOutages" || layerId === "stationDots") {
     const station_id = feature.properties.station_id;
 
@@ -856,13 +842,7 @@ export function handleOnClick(
       onBack,
       userLocation,
     );
-    showPopup(
-      complexFeature.geometry.coordinates as [number, number],
-      mapRef,
-      onClickPopupRef,
-      popupDiv,
-      root,
-    );
+    showSheetPage(pageDiv, root);
   }
 
   // if it's the station layer that was clicked, simulate a complex being clicked
@@ -896,7 +876,7 @@ export function handleOnClick(
       onBack,
       userLocation,
     );
-    showPopup(coordinates, mapRef, onClickPopupRef, popupDiv, root);
+    showSheetPage(pageDiv, root);
   }
 
   if (layerId === "mta-subway-complexes-accessible-rt") {
@@ -916,7 +896,7 @@ export function handleOnClick(
       onBack,
       userLocation,
     );
-    showPopup(coordinates, mapRef, onClickPopupRef, popupDiv, root);
+    showSheetPage(pageDiv, root);
   }
 
   if (
@@ -944,7 +924,7 @@ export function handleOnClick(
       onBack,
       userLocation,
     );
-    showPopup(coordinates, mapRef, onClickPopupRef, popupDiv, root);
+    showSheetPage(pageDiv, root);
   }
 
   return;

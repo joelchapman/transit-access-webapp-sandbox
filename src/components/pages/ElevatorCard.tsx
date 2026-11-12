@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import { MapPin, ArrowUpRight } from "lucide-react";
 
-import { ElevatorStatusMark, InServicePill, OutOfServicePill, AccessTipBadge, OutagePlannedBadge, MaintenanceBadge, RedundantBadge } from "./StatusBadges";
+import { ElevatorStatusMark, InServicePill, OutOfServicePill } from "@/components/pills/StatusPills";
+import { AccessTipBadge, PlannedOutageBadge, MaintenanceBadge, RedundantBadge } from "@/components/badges/InfoBadges";
 import { ROW_PRESS, EXPAND_EASE } from "@/lib/interaction";
 import { AccessTipNote, PlannedOutageNotes, ElevatorFooter } from "./ElevatorNotes";
 import { generateSubwayLines } from "@/utils/generateSubwayLines";
@@ -10,9 +11,9 @@ import {
   walkingDistanceMiles,
   WALKING_TOLERANCE_MILES,
 } from "@/utils/dataUtils";
-import { ElevatorPopupProps } from "@/utils/types";
-import { userIsInBounds } from "@/components/MtaMap/mtaMapOptions";
-import { longtermOutageThreshold } from "@/components/MtaMap/layers/UpcomingOutages/upcomingOutagesProps";
+import { ElevatorPageProps } from "@/utils/types";
+import { userIsInBounds } from "@/components/maps/mtaMapOptions";
+import { longtermOutageThreshold } from "@/components/maps/layers/UpcomingOutages/upcomingOutagesProps";
 import { cn } from "@/lib/utils";
 
 // One elevator: what it connects, whether it works, and the street photo that flies the map to it.
@@ -21,7 +22,7 @@ import { cn } from "@/lib/utils";
 const toBool = (v: unknown) => v === true || v === "true" || v === "1";
 
 const ElevatorCard: React.FC<{
-  elevator: ElevatorPopupProps;
+  elevator: ElevatorPageProps;
   map: mapboxgl.Map;
   stationView: string | null;
   setStationView: React.Dispatch<React.SetStateAction<string | null>>;
@@ -188,7 +189,7 @@ const ElevatorCard: React.FC<{
                 {/* A maintenance label means the upcoming outage is today/tonight/tomorrow — the
                     maintenance badge already says that, so it replaces the generic outage badge */}
                 {upcomingOutages.length > 0 && !elevator.maintenanceLabel && !isOpen && (
-                  <OutagePlannedBadge isLongTerm={hasLongTermOutage} />
+                  <PlannedOutageBadge isLongTerm={hasLongTermOutage} />
                 )}
                 {elevator.maintenanceLabel && !(isOpen && upcomingOutages.length > 0) && (
                   <MaintenanceBadge when={elevator.maintenanceLabel} />

@@ -69,3 +69,15 @@ export const MTA_LINE_COLOR_SUBSTITUTIONS: Record<string, string> = {
   "hsl(220, 1%, 51%)": "#808183", // S
   "hsl(216, 3%, 66%)": "#A7A9AC", // L
 };
+
+// The same official colors, keyed by route letter instead — for anything that looks a color up
+// by route rather than substituting it into the Studio export (e.g. icons/rasterized/rasterizeRouteBullets.ts)
+export const MTA_LINE_COLORS: Record<string, string> = {
+  A: "#0039A6", C: "#0039A6", E: "#0039A6",
+  "1": "#EE352E", "2": "#EE352E", "3": "#EE352E",
+  "4": "#00933C", "5": "#00933C", "6": "#00933C",
+  B: "#FF6319", D: "#FF6319", F: "#FF6319", M: "#FF6319",
+  N: "#FCCC0A", Q: "#FCCC0A", R: "#FCCC0A", W: "#FCCC0A",
+  "7": "#B933AD", J: "#996633", Z: "#996633", G: "#6CBE45",
+  L: "#A7A9AC", S: "#808183", SIR: "#0039A6",
+};

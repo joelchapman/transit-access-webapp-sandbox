@@ -1,4 +1,3 @@
-import React from "react";
 import { MoveVertical, Wrench } from "lucide-react";
 import { mapColors } from "@/styles/mapColors";
 
@@ -6,10 +5,12 @@ import { mapColors } from "@/styles/mapColors";
 // so the two never read as the same thing. No badge when it works, a solid red dot in the corner
 // when it's out. A planned outage is a separate wrench badge
 // (ElevatorPlannedBadge) that sits on the opposite corner, so it can show alongside "out".
-// Icons are Lucide's; these components only wrap them. stationMarkerImages.tsx rasterizes them for
-// the map, and the legend renders them directly.
-
-export type ElevatorState = "ok" | "out";
+// Icons are Lucide's; these components only wrap them — plain DOM/SVG elements, same as any other
+// icon. ElevatorMarker, ElevatorPlannedBadge and ElevatorSelectionRing are additionally rasterized
+// to a bitmap for the live map by icons/rasterized/rasterizeMarkers.tsx; ElevatorMarkerInverted below
+// never appears on the map itself, so it's DOM-only — rendered directly by the Legend.
+//
+// state is "ok" | "out". Usage: <ElevatorMarker state="out" size={28} />
 
 export const ELEVATOR_MARKER_SIZE = 34;
 const CENTER = ELEVATOR_MARKER_SIZE / 2;
@@ -17,7 +18,8 @@ const SIDE = 24;
 const RING = 2;
 const FILL = mapColors.ink;
 
-export function ElevatorMarker({ state, size = ELEVATOR_MARKER_SIZE }: { state: ElevatorState; size?: number }) {
+/** @param {{ state: "ok" | "out", size?: number }} props */
+export function ElevatorMarker({ state, size = ELEVATOR_MARKER_SIZE }) {
   const icon = 15;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${ELEVATOR_MARKER_SIZE} ${ELEVATOR_MARKER_SIZE}`} aria-hidden="true">
@@ -44,7 +46,8 @@ export function ElevatorMarker({ state, size = ELEVATOR_MARKER_SIZE }: { state: 
 // A platform elevator (not shown on the map itself, just in lists/legend) — same shape and
 // out-state badge as ElevatorMarker, with the fill inverted: white square, dark icon, instead
 // of the dark square street elevators use, so the two read as distinct at a glance.
-export function ElevatorMarkerInverted({ state, size = ELEVATOR_MARKER_SIZE }: { state: ElevatorState; size?: number }) {
+/** @param {{ state: "ok" | "out", size?: number }} props */
+export function ElevatorMarkerInverted({ state, size = ELEVATOR_MARKER_SIZE }) {
   const icon = 15;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${ELEVATOR_MARKER_SIZE} ${ELEVATOR_MARKER_SIZE}`} aria-hidden="true">
@@ -71,7 +74,8 @@ export function ElevatorMarkerInverted({ state, size = ELEVATOR_MARKER_SIZE }: {
 // Long-term outage coming up: placed on the marker's bottom-right corner by the map layer
 export const PLANNED_BADGE_SIZE = 16;
 
-export function ElevatorPlannedBadge({ size = PLANNED_BADGE_SIZE }: { size?: number }) {
+/** @param {{ size?: number }} props */
+export function ElevatorPlannedBadge({ size = PLANNED_BADGE_SIZE }) {
   const c = PLANNED_BADGE_SIZE / 2;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${PLANNED_BADGE_SIZE} ${PLANNED_BADGE_SIZE}`} aria-hidden="true">

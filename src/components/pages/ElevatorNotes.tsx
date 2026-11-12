@@ -1,10 +1,10 @@
 import React from "react";
 import { Wrench } from "lucide-react";
-import { AccessibleIconWhite } from "../icons";
-import { longtermOutageThreshold } from "../MtaMap/layers/UpcomingOutages/upcomingOutagesProps";
+import { AccessibleWhite } from "../icons";
+import { longtermOutageThreshold } from "../maps/layers/UpcomingOutages/upcomingOutagesProps";
 import { UpcomingOutage } from "@/utils/types";
 import { cn } from "@/lib/utils";
-import { Note } from "@/components/Note/Note";
+import { Note } from "@/components/notes/Note";
 
 // The detail blocks an elevator shows once opened, shared by the station list row
 // and the view that opens from tapping an elevator on the map.
@@ -16,7 +16,7 @@ export function AccessTipNote({ note }: { note: string }) {
       title="Access tip"
       icon={
         <span aria-hidden="true">
-          <AccessibleIconWhite size={16} fill="oklch(var(--access-tip-foreground))" />
+          <AccessibleWhite size={16} fill="oklch(var(--access-tip-foreground))" />
         </span>
       }
     >

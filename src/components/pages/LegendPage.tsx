@@ -1,14 +1,14 @@
 import React from "react";
-import { ElevatorMarker, ElevatorMarkerInverted } from "@/components/ElevatorMarker/ElevatorMarker";
-import { StationMarker } from "@/components/StationMarker/StationMarker";
-import { Ramp, AccessibleIconWhite } from "../icons";
+import { ElevatorMarker, ElevatorMarkerInverted } from "@/components/icons/variants/ElevatorMarker";
+import { StationMarker } from "@/components/icons/variants/StationMarker";
+import { Ramp, AccessibleWhite } from "../icons";
+import { ElevatorStatusMark } from "@/components/pills/StatusPills";
 import {
   AccessTipBadge,
-  OutagePlannedBadge,
-  ElevatorStatusMark,
+  PlannedOutageBadge,
   MaintenanceBadge,
   RedundantBadge,
-} from "@/components/StationPopup/StatusBadges";
+} from "@/components/badges/InfoBadges";
 import { getADAPctByComplex } from "@/utils/dataUtils";
 import { COMMUNITY_LINKS } from "@/utils/constants";
 import pkg from "../../../package.json";
@@ -96,7 +96,7 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
           />
           <h1 className="absolute flex flex-col justify-center" style={{ top: 45, left: 60, fontWeight: 700, fontSize: 25, lineHeight: 1 }}>
             <span className="ml-1" aria-hidden="true">
-              <AccessibleIconWhite />
+              <AccessibleWhite />
             </span>
             Transit Access
           </h1>
@@ -163,7 +163,7 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
             },
             { badge: <RedundantBadge />, text: "If out of service, an alternate path is possible." },
             { badge: <AccessTipBadge />, text: "Access tip from the community." },
-            { badge: <OutagePlannedBadge />, text: "Future outage planned." },
+            { badge: <PlannedOutageBadge />, text: "Future outage planned." },
             {
               badge: <MaintenanceBadge when="today" />,
               text: "Maintenance today or tomorrow.",

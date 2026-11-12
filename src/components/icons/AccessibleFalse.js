@@ -1,4 +1,4 @@
-const AccessibleIconFalse = ({size = 24, fill="#000515"}) => {
+const AccessibleFalse = ({size = 24, fill="#000515"}) => {
   return (
     <svg
       width={size}
@@ -15,4 +15,4 @@ const AccessibleIconFalse = ({size = 24, fill="#000515"}) => {
   );
 };
 
-export default AccessibleIconFalse;
+export default AccessibleFalse;

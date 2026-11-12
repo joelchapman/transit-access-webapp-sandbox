@@ -8,7 +8,7 @@ export type UpcomingOutage = {
   outageDurationDays?: number | null;
 };
 
-export type ElevatorPopupProps = {
+export type ElevatorPageProps = {
   title: string;
   ada?: string;
   directionLabel: string;
@@ -31,14 +31,14 @@ export type ElevatorPopupProps = {
   lastUpdated?: Date | string | null;
 };
 
-export type StationPopupProps = {
+export type StationPageProps = {
   ada: string;
   ada_notes?: string | null;
   route?: string | null;
   inaccessibleRoutes?: string | null;
   complexName: string;
   complexID?: string | number;
-  elevators: ElevatorPopupProps[];
+  elevators: ElevatorPageProps[];
   totalElevators: number;
   totalRamps: number;
   map?: mapboxgl.Map | null;

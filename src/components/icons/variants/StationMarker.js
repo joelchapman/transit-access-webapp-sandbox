@@ -1,4 +1,3 @@
-import React from "react";
 import { Accessibility, OctagonX } from "lucide-react";
 import { mapColors } from "@/styles/mapColors";
 
@@ -8,16 +7,18 @@ import { mapColors } from "@/styles/mapColors";
 // a small gray dot for stations with no step-free access at all. Icons are Lucide's; this component
 // only wraps them.
 //
-// The map can't render React, so stationMarkerImages.ts renders this to SVG and hands Mapbox
-// the bitmap. The legend renders it directly, so both always match.
-
-export type StationAccess = "ok" | "partial" | "out" | "none";
+// This is a plain DOM/SVG element — the Legend and StationPage render it directly. The live
+// map can't render React though, so icons/rasterized/rasterizeMarkers.tsx separately rasterizes
+// this same component to a bitmap and hands that to Mapbox; both stay in sync automatically
+// since they're the exact same component either way.
+//
+// access is one of "ok" | "partial" | "out" | "none". Usage: <StationMarker access="partial" size={28} />
 
 const TONES = {
   ok: { fill: mapColors.statusOk },
   partial: { fill: mapColors.markerPartial, dot: mapColors.statusPartialDot },
   out: { fill: mapColors.statusOut },
-} as const;
+};
 
 // Square canvas, marker dead centre so it sits on the track; the dot tucks into the top-right corner
 export const MARKER_SIZE = 34;
@@ -25,7 +26,8 @@ const CENTER = MARKER_SIZE / 2;
 const RADIUS = 12;
 const RING = 2;
 
-export function StationMarker({ access, size = MARKER_SIZE }: { access: StationAccess; size?: number }) {
+/** @param {{ access: "ok" | "partial" | "out" | "none", size?: number }} props */
+export function StationMarker({ access, size = MARKER_SIZE }) {
   if (access === "none") {
     return (
       <svg width={size} height={size} viewBox={`0 0 ${MARKER_SIZE} ${MARKER_SIZE}`} aria-hidden="true">
@@ -66,7 +68,8 @@ export function StationMarker({ access, size = MARKER_SIZE }: { access: StationA
 export const PILL_WIDTH = 46;
 export const PILL_HEIGHT = 26;
 
-export function StationPill({ access }: { access?: StationAccess } = {}) {
+/** @param {{ access?: "ok" | "partial" | "out" | "none" }} props */
+export function StationPill({ access } = {}) {
   // Some-out's marker is gray with a yellow dot; the capsule has no dot, so its border takes the yellow
   const stroke =
     access === "partial"

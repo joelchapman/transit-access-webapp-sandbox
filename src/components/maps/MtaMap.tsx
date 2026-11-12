@@ -37,7 +37,7 @@ import {
   handlePopupEvent,
   handleSearchPopup,
   initializeMtaMap,
-  cleanUpPopups,
+  clearSheetPage,
   removeHoverPopup,
   setSheetHost,
   refreshCurrentPopup,
@@ -54,8 +54,8 @@ import {
 import { MtaStationData, MtaStationFeature } from "@/utils/types";
 import { LocationPin } from "../icons";
 import { AlertData } from "@/types/alerts";
-import HomeSheet, { STATIONS_PANEL_ID } from "../HomeSheet/HomeSheet";
-import AlertBanner from "../AlertBanner/AlertBanner";
+import HomeSheet, { STATIONS_PANEL_ID } from "../sheets/HomeSheet";
+import AlertBanner from "../banners/AlertBanner";
 import { initializeStore } from "@/lib/dataStore";
 import { applyZIndexVars } from "@/styles/zIndex";
 import { Maximize2, Minimize2 } from "lucide-react";
@@ -206,15 +206,6 @@ const MtaMap = () => {
     }),
   );
 
-  const onClickPopupRef = useRef(
-    new mapboxgl.Popup({
-      anchor: "bottom",
-      className: "onclick-popup",
-      closeButton: true,
-      closeOnClick: true,
-    }),
-  );
-
   // Station and elevator details open as a page inside the home sheet
   useEffect(() => {
     setSheetHost({ show: setSheetPage, hide: () => setSheetPage(null) });
@@ -243,7 +234,7 @@ const MtaMap = () => {
   };
 
   const handleBack = () => {
-    cleanUpPopups();
+    clearSheetPage();
     const pos = lastMapPositionRef.current;
     if (pos) {
       mapRef.current?.flyTo({
@@ -274,7 +265,6 @@ const MtaMap = () => {
   ) => {
     handleSearchPopup(
       feature,
-      onClickPopupRef,
       mapRef.current,
       elevatorData,
       upcomingElevatorDataRef.current,
@@ -681,7 +671,6 @@ const MtaMap = () => {
             captureMapPosition();
             handleOnClick(
               augmentedEvent,
-              onClickPopupRef,
               mapRef.current,
               getLatestElevatorData(),
               upcomingElevatorDataRef.current,
@@ -704,7 +693,6 @@ const MtaMap = () => {
               let confirmedClick = dealWithMapboxIconOverlap(augmentedEvent);
               handleOnClick(
                 confirmedClick,
-                onClickPopupRef,
                 mapRef.current,
                 getLatestElevatorData(),
                 upcomingElevatorDataRef.current,
@@ -726,7 +714,6 @@ const MtaMap = () => {
             if ((mapRef.current?.getZoom?.() || 0) >= 15) {
               handleOnClick(
                 augmentedEvent,
-                onClickPopupRef,
                 mapRef.current,
                 getLatestElevatorData(),
                 upcomingElevatorDataRef.current,
@@ -981,7 +968,7 @@ const MtaMap = () => {
             // Tell HomeSheet to collapse to its minimum size for the birdseye view
             setZoomOutSignal((n) => n + 1);
 
-            cleanUpPopups();
+            clearSheetPage();
             setStationView(null);
             setElevatorView(null);
             setIsZoomedOut(true);

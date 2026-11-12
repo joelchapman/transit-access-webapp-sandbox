@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
-import { StatusIcon } from "@/components/StatusIcon/StatusIcon";
+import { AlertStatus } from "@/components/icons/variants/AlertStatus";
 import { AlertData } from "@/types/alerts";
 import { cn } from "@/lib/utils";
 import { BUTTON_PRESS } from "@/lib/interaction";
-import { Note } from "@/components/Note/Note";
+import { Note } from "@/components/notes/Note";
 
 const DISMISSED_KEY = "dismissed-system-alerts";
 
@@ -52,7 +52,7 @@ const AlertBanner: React.FC<{ alerts: AlertData[] }> = ({ alerts }) => {
             key={alert.text}
             role="status"
             tone={tone.tone}
-            icon={<StatusIcon glyph={tone.glyph} className={tone.icon} />}
+            icon={<AlertStatus glyph={tone.glyph} className={tone.icon} />}
             action={
               <button
                 type="button"

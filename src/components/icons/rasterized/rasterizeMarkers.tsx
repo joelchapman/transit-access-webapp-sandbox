@@ -4,24 +4,31 @@ import type mapboxgl from "mapbox-gl";
 import {
   StationMarker,
   StationPill,
-  StationAccess,
   MARKER_SIZE,
   PILL_WIDTH,
   PILL_HEIGHT,
-} from "@/components/StationMarker/StationMarker";
+} from "@/components/icons/variants/StationMarker";
 import {
   ElevatorMarker,
   ElevatorPlannedBadge,
   ElevatorSelectionRing,
   ELEVATOR_MARKER_SIZE,
   PLANNED_BADGE_SIZE,
-} from "@/components/ElevatorMarker/ElevatorMarker";
+} from "@/components/icons/variants/ElevatorMarker";
 import { mapColors } from "@/styles/mapColors";
 
-// Turns the station and elevator marker components into map images, and gives their layers a pointer
-// cursor, since the marker and the name beside it are both tap targets:
+// Turns the station and elevator marker DOM components (icons/variants/StationMarker,
+// icons/variants/ElevatorMarker) into rasterized map images via a hidden canvas (rasterize
+// below), and gives their layers a pointer cursor, since the marker and the name beside it are
+// both tap targets:
 //   station-marker-ok/partial/out/none, station-pill            (StationMarker)
 //   elevator-marker-ok/out/selected, elevator-badge-planned     (ElevatorMarker)
+// Those same components also render directly as plain DOM elements elsewhere (the Legend,
+// StationPage) — this file is only needed because Mapbox's own canvas can't render React.
+
+// Plain JS icon components don't carry a TS type, so this file (a real .tsx consumer) defines
+// its own — same four values StationMarker's access prop accepts.
+type StationAccess = "ok" | "partial" | "out" | "none";
 
 export const markerImageId = (access: StationAccess) => `station-marker-${access}`;
 const ACCESS: StationAccess[] = ["ok", "partial", "out", "none"];
@@ -59,7 +66,7 @@ function rasterize(element: React.ReactElement, width: number, height: number, r
 }
 
 /** Call once with the new map. */
-export function attachStationMarkers(map: mapboxgl.Map) {
+export function attachMarkerImages(map: mapboxgl.Map) {
   const ratio = Math.max(2, Math.ceil(window.devicePixelRatio || 1));
   const add = (id: string, image: ImageData | null) => {
     if (image && !map.hasImage(id)) map.addImage(id, image, { pixelRatio: ratio });

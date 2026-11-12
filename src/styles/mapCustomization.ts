@@ -1,5 +1,5 @@
 import { mapColors, MTA_LINE_COLOR_SUBSTITUTIONS } from "./mapColors";
-import { dotView } from "@/components/MtaMap/layers/CurrentOutages/currentOutagesProps";
+import { dotView } from "@/components/maps/layers/CurrentOutages/currentOutagesProps";
 
 // A muted base map in the spirit of Apple Maps' transit view, applied on top of the Mapbox Studio
 // export (mapbox-studio-style.json) when the map is created. The export stays untouched, so it can
@@ -163,14 +163,14 @@ export function applyMapCustomization<T>(source: T): T {
   }
   paint("mta-sir-lines", { "line-width": SUBWAY_WIDTH, "line-opacity": 1 });
 
-  // Line bullets along the tracks are placed by the app (components/MtaMap/trackBullets.ts) so each
+  // Line bullets along the tracks are placed by the app (components/icons/rasterized/rasterizeRouteBullets.ts) so each
   // bullet can stay upright while a group runs along the line; hide the export's rotated versions
   for (const layer of style.layers) {
     if (/^mta-(subwaylines-labels|sir-lines-label)/.test(layer.id)) layout(layer.id, { visibility: "none" });
   }
 
   // Stations: the app's stationOutages layer draws one access marker per accessible station
-  // (components/StationMarker). These export layers keep the names and tap targets, and drop the
+  // (components/icons/variants/StationMarker). These export layers keep the names and tap targets, and drop the
   // wheelchair tile and red X they used to draw. Names come in at street-grid zoom, Apple style.
   layout("mta-subway-stations-accessible", {
     "icon-image": "",
@@ -203,7 +203,7 @@ export function applyMapCustomization<T>(source: T): T {
     "text-opacity": ["step", ["zoom"], 0, dotView+1, 1],
   });
 
-  // Street elevators: the app's "outages" layer draws one marker per elevator (components/ElevatorMarker).
+  // Street elevators: the app's "outages" layer draws one marker per elevator (components/icons/variants/ElevatorMarker).
   // This export layer keeps the "Street Elevator" labels and tap target, and keeps its icon only for ramps
   const isRamp = ["==", ["slice", ["downcase", ["get", "elevatorno"]], 0, 2], "ra"];
   layout("transit-elevators", { "icon-image": ["case", isRamp, "ramp", ""] });

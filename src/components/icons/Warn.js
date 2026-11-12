@@ -1,4 +1,4 @@
-const WarnIcon = ({ fill="#ffb700", size=24 }) => {
+const Warn = ({ fill="#ffb700", size=24 }) => {
   return (
     <svg
       width={size}
@@ -16,4 +16,4 @@ const WarnIcon = ({ fill="#ffb700", size=24 }) => {
   );
 };
 
-export default WarnIcon;
+export default Warn;

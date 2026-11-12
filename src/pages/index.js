@@ -1,7 +1,7 @@
 import Head from "next/head";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { React, useState, useEffect } from "react";
-import MtaMap from "@/components/MtaMap/MtaMap";
+import MtaMap from "@/components/maps/MtaMap";
 
 export default function Home() {
   return (

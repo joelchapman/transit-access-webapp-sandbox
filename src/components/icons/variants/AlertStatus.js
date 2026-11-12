@@ -1,9 +1,10 @@
-import React from "react";
+import { OctagonX } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Solid shape with a white glyph. Reads at 14px where lucide's outlined
-// icons turn into a thin ring; takes its fill color from `currentColor`.
-// On a solid pill, set --status-icon-glyph to the pill's color so the glyph cuts through.
+// 4 variants: check, alert, info, & out. Usage: <AlertStatus glyph="alert" className="size-5 text-status-partial" />
+// "out" is the one glyph not drawn as a disc — it's lucide's own octagon-X shape, used wherever a
+// status is fully out (always on a solid-colored surface already, so it doesn't need its own disc
+// background the way check/alert/info do).
 const DISC = <circle cx="8" cy="8" r="8" fill="currentColor" />;
 
 const ICONS = {
@@ -29,12 +30,11 @@ const ICONS = {
   ),
 };
 
-interface StatusIconProps {
-  glyph: keyof typeof ICONS;
-  className?: string;
-}
-
-export function StatusIcon({ glyph, className }: StatusIconProps) {
+/** @param {{ glyph: "check" | "alert" | "info" | "out", className?: string }} props */
+export function AlertStatus({ glyph, className }) {
+  if (glyph === "out") {
+    return <OctagonX aria-hidden="true" strokeWidth={2.5} className={className} />;
+  }
   return (
     <svg viewBox="0 0 16 16" className={cn("size-4 shrink-0", className)} aria-hidden="true">
       {ICONS[glyph]}
@@ -42,4 +42,4 @@ export function StatusIcon({ glyph, className }: StatusIconProps) {
   );
 }
 
-export default StatusIcon;
+export default AlertStatus;

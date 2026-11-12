@@ -1,18 +1,18 @@
 import React from "react";
 import { Wrench } from "lucide-react";
-import styles from "./elevator-popup.module.css";
-import { ElevatorPopupProps } from "@/utils/types";
+import styles from "./elevator-page.module.css";
+import { ElevatorPageProps } from "@/utils/types";
 import {
   ElevatorStatusMark,
   InServicePill,
   OutOfServicePill,
-  MaintenanceBadge,
-} from "@/components/StationPopup/StatusBadges";
+} from "@/components/pills/StatusPills";
+import { MaintenanceBadge } from "@/components/badges/InfoBadges";
 import {
   AccessTipNote,
   PlannedOutageNotes,
   ElevatorFooter,
-} from "@/components/StationPopup/ElevatorNotes";
+} from "./ElevatorNotes";
 import { generateSubwayLines } from "@/utils/generateSubwayLines";
 
 // Opens when an elevator is tapped on the map: the same elevator as a station-list row, opened,
@@ -20,7 +20,7 @@ import { generateSubwayLines } from "@/utils/generateSubwayLines";
 
 const toBool = (v: unknown) => v === true || v === "true" || v === "1";
 
-const ElevatorPopup: React.FC<ElevatorPopupProps> = ({
+const ElevatorPage: React.FC<ElevatorPageProps> = ({
   title: stationName,
   elevatorno,
   imageURL,
@@ -96,7 +96,7 @@ const ElevatorPopup: React.FC<ElevatorPopupProps> = ({
   );
 };
 
-export default ElevatorPopup;
+export default ElevatorPage;
 
 interface OnHoverElevatorPopupProps {
   date: string;

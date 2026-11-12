@@ -39,18 +39,21 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
 
-## Map Layers Overview
+## Component Organization
 
-| Layer ID                            | Type   | Clickable | Animation    | Popup  | Mapbox Studio
-|-------------------------------------|--------|-----------|--------------|--------|--------------|
-| transit-elevators                   | symbol | ✅        | ❌          | ✅     | ✅           |
-| stationOutages                      | symbol | ✅        | ⚠️ soon     | ✅     | ❌           |
-| mta-subway-complexes-accessible     | symbol | ✅        | ✅ (pulse)  | ✅     | ❌           |
-| elevator-to-complex-line-connectors | line   | ❌        | ❌          | ❌     | ✅           |
+`src/components/` organization:
 
-
-
-
+| `sheets/` | The container component (`HomeSheet`) |
+| `pages/` | Page views within the sheet (`HomePage`, `LegendPage`, `StationPage`, `ElevatorPage`) |
+| `banners/` | Dismissible, floating, system-level notices (`AlertBanner`) |
+| `badges/` | Equipment info — expands to `notes/` card (`AccessTipBadge`, `PlannedOutageBadge`) |
+| `notes/` | Expanded badge details (`Note`) |
+| `pills/` | Live status pills  (`StatusPill`) |
+| `icons/` | Static icons, no text/data |
+| `icons/variants/` | Icons with multiple shapes & glyphs (`AlertStatus`, `StationMarker`) |
+| `icons/rasterized/` | Turns icons into Mapbox bitmaps |
+| `maps/` | The map feature: `MtaMap` + its handlers/layers/options |
+| `ui/` | Generic components (shadcn) |
 
 
 
