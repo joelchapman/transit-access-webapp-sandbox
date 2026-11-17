@@ -1,5 +1,8 @@
 import React from "react";
-import { ElevatorMarker, ElevatorMarkerInverted } from "@/components/icons/variants/ElevatorMarker";
+import {
+  ElevatorMarker,
+  ElevatorMarkerInverted,
+} from "@/components/icons/variants/ElevatorMarker";
 import { StationMarker } from "@/components/icons/variants/StationMarker";
 import { Ramp, AccessibleWhite } from "../icons";
 import { ElevatorStatusMark } from "@/components/pills/StatusPills";
@@ -22,7 +25,13 @@ interface LegendPageProps {
   lastUpdated: Date | null;
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="flex flex-col gap-3 px-4 pt-8">
       <h2 className="text-headline font-semibold">{title}</h2>
@@ -32,25 +41,39 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function Prose({ children }: { children: React.ReactNode }) {
-  return <p className="max-w-[65ch] text-body leading-relaxed text-pretty">{children}</p>;
+  return (
+    <p className="max-w-[65ch] text-body leading-relaxed text-pretty">
+      {children}
+    </p>
+  );
 }
 
 // A number called out inline — bold italic with a thin stroke, like the old legend's counts
 function Stat({ children }: { children: React.ReactNode }) {
   return (
-    <span className="font-black italic tabular-nums" style={{ WebkitTextStroke: "0.5px currentColor" }}>
+    <span
+      className="font-black italic tabular-nums"
+      style={{ WebkitTextStroke: "0.5px currentColor" }}
+    >
       {children}
     </span>
   );
 }
 
 // A symbol beside its meaning, in a fixed 28px column so the text lines up down the list
-function SymbolList({ items }: { items: { symbol: React.ReactNode; text: React.ReactNode }[] }) {
+function SymbolList({
+  items,
+}: {
+  items: { symbol: React.ReactNode; text: React.ReactNode }[];
+}) {
   return (
     <dl className="flex flex-col gap-3">
       {items.map(({ symbol, text }, i) => (
         <div key={i} className="flex items-start gap-3">
-          <dt className="grid size-7 shrink-0 place-items-center" aria-hidden="true">
+          <dt
+            className="grid size-7 shrink-0 place-items-center"
+            aria-hidden="true"
+          >
             {symbol}
           </dt>
           <dd className="pt-0.5 text-subhead text-pretty">{text}</dd>
@@ -61,7 +84,11 @@ function SymbolList({ items }: { items: { symbol: React.ReactNode; text: React.R
 }
 
 // Badges are wider than a symbol column, so each sits above its explanation
-function BadgeList({ items }: { items: { badge: React.ReactNode; text: React.ReactNode }[] }) {
+function BadgeList({
+  items,
+}: {
+  items: { badge: React.ReactNode; text: React.ReactNode }[];
+}) {
   return (
     <dl className="flex flex-col gap-4">
       {items.map(({ badge, text }, i) => (
@@ -74,11 +101,21 @@ function BadgeList({ items }: { items: { badge: React.ReactNode; text: React.Rea
   );
 }
 
-const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators, lastUpdated }) => {
+const LegendPage: React.FC<LegendPageProps> = ({
+  numOutElevators,
+  totalElevators,
+  lastUpdated,
+}) => {
   const numInService = totalElevators - numOutElevators;
-  const pctOut = totalElevators > 0 ? Math.round((numOutElevators / totalElevators) * 100) : 0;
+  const pctOut =
+    totalElevators > 0
+      ? Math.round((numOutElevators / totalElevators) * 100)
+      : 0;
   const pctAccessible = getADAPctByComplex();
-  const updatedAt = lastUpdated?.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const updatedAt = lastUpdated?.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
 
   return (
     <article className="pb-2">
@@ -94,7 +131,16 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
             className="absolute object-contain object-left"
             style={{ width: "100%", top: -65, left: -10 }}
           />
-          <h1 className="absolute flex flex-col justify-center" style={{ top: 45, left: 60, fontWeight: 700, fontSize: 25, lineHeight: 1 }}>
+          <h1
+            className="absolute flex flex-col justify-center"
+            style={{
+              top: 45,
+              left: 60,
+              fontWeight: 700,
+              fontSize: 25,
+              lineHeight: 1,
+            }}
+          >
             <span className="ml-1" aria-hidden="true">
               <AccessibleWhite />
             </span>
@@ -102,7 +148,8 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
           </h1>
         </div>
         <p className="mt-1 text-subhead text-muted-foreground">
-          This map shows live elevator status in the NYC subway system. Tap on a station for more info!
+          This map shows live elevator status in the NYC subway system. Tap on a
+          station for more info!
         </p>
       </header>
 
@@ -112,8 +159,8 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
           <Prose>
             {lastUpdated ? (
               <>
-                There are <Stat>{numOutElevators}</Stat> elevators out of service at this time ({pctOut}% of
-                the system).
+                There are <Stat>{numOutElevators}</Stat> elevators out of
+                service at this time ({pctOut}% of the system).
               </>
             ) : (
               "Loading live status…"
@@ -124,49 +171,52 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
               <Stat>{numInService}</Stat> elevators available for use.
             </Prose>
           )}
-          {updatedAt && <p className="text-footnote text-muted-foreground">Last updated: {updatedAt}</p>}
+          {updatedAt && (
+            <p className="text-footnote text-muted-foreground">
+              Last updated: {updatedAt}
+            </p>
+          )}
         </div>
       </Section>
 
-      <Section title="Map Legend">
+      <Section title="Station Info">
         <SymbolList
-          items={[
-            { symbol: <StationMarker access="ok" size={28} />, text: "All elevators in service." },
-            { symbol: <StationMarker access="partial" size={28} />, text: "At least one elevator out of service." },
-            { symbol: <StationMarker access="out" size={28} />, text: "All elevators out of service." },
-            { symbol: <StationMarker access="none" size={28} />, text: "Station not ADA accessible." },
-          ]}
-        />
-      </Section>
-
-      <Section title="Station Legend">
-        <SymbolList
-          items={[
-            { symbol: <ElevatorMarker state="ok" size={28} />, text: "Street elevator (exact location shown on map)." },
-            { symbol: <ElevatorMarkerInverted state="ok" size={28} />, text: "Platform elevator" },
-            { symbol: <Ramp size={28} />, text: "Ramp." },
-          ]}
-        />
-      </Section>
-
-      <Section title="Elevator Legend">
-        <BadgeList
           items={[
             {
-              badge: (
-                <>
-                  <span className="sr-only">Out of service</span>
-                  <ElevatorStatusMark isOut className="size-5" />
-                </>
-              ),
-              text: "Not working. Return time estimated by MTA.",
+              symbol: <StationMarker access="ok" size={28} />,
+              text: "All elevators in service.",
             },
-            { badge: <RedundantBadge />, text: "If out of service, an alternate path is possible." },
-            { badge: <AccessTipBadge />, text: "Access tip from the community." },
-            { badge: <PlannedOutageBadge />, text: "Future outage planned." },
             {
-              badge: <MaintenanceBadge when="today" />,
-              text: "Maintenance today or tomorrow.",
+              symbol: <StationMarker access="partial" size={28} />,
+              text: "At least one elevator out of service.",
+            },
+            {
+              symbol: <StationMarker access="out" size={28} />,
+              text: "All elevators out of service.",
+            },
+            {
+              symbol: <StationMarker access="none" size={28} />,
+              text: "Station not ADA accessible.",
+            },
+          ]}
+        />
+      </Section>
+
+      <Section title="Access Info">
+        <SymbolList
+          items={[
+            {
+              symbol: <ElevatorMarker state="ok" size={28} />,
+              text: "Street elevator (exact location shown on map).",
+            },
+            {
+              symbol: <ElevatorMarkerInverted state="ok" size={28} />,
+              text: "Platform elevator.",
+            },
+            { symbol: <Ramp size={28} />, text: "Ramp." },
+            {
+              symbol: <ElevatorStatusMark isOut className="size-5" />,
+              text: "Not working. Return estimate from MTA.",
             },
           ]}
         />
@@ -176,15 +226,16 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
         <Prose>
           {pctAccessible < 75 ? "Only " : ""}
           <Stat>{pctAccessible}%</Stat> of stations in the MTA are ADA
-          accessible. Use Transit Access to check if your accessible station is in service.
+          accessible. Use Transit Access to check if your accessible station is
+          in service.
         </Prose>
         <Prose>
-          The MTA is taking elevators out of service for replacement for 8–12 months at a time. Use Transit
-          Access to stay ready and up-to-date.
+          The MTA is taking elevators out of service for replacement for 8–12
+          months at a time. Use Transit Access to stay ready and up-to-date.
         </Prose>
         <Prose>
-          Mobility devices board in the middle of the platform. Look for the conductor and the blue Boarding
-          Area sign.
+          Mobility devices board in the middle of the platform. Look for the
+          conductor and the blue Boarding Area sign.
         </Prose>
         <img
           src="/boardingarea.png"
@@ -217,7 +268,9 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
 
         {/* Buy Me A Coffee keeps its logo button above; everything else is a plain link */}
         <ul className="flex flex-col gap-1">
-          {COMMUNITY_LINKS.filter((link) => !link.href.includes("buymeacoffee")).map((link) => (
+          {COMMUNITY_LINKS.filter(
+            (link) => !link.href.includes("buymeacoffee"),
+          ).map((link) => (
             <li key={link.href}>
               <a
                 href={link.href}
@@ -233,12 +286,22 @@ const LegendPage: React.FC<LegendPageProps> = ({ numOutElevators, totalElevators
 
         <p className="max-w-[65ch] text-footnote text-pretty text-muted-foreground">
           Disclaimer: App data pulled from MTA’s GTFS-realtime feed and{" "}
-          <a href="https://data.ny.gov" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
+          <a
+            href="https://data.ny.gov"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-foreground"
+          >
             Open Data NY
           </a>
-          . Accuracy is highly dependent on the data provided. If you suspect any inaccuracies, check MTA’s
-          website for official notices at{" "}
-          <a href="https://mta.info" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">
+          . Accuracy is highly dependent on the data provided. If you suspect
+          any inaccuracies, check MTA’s website for official notices at{" "}
+          <a
+            href="https://mta.info"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-foreground"
+          >
             mta.info
           </a>
           .

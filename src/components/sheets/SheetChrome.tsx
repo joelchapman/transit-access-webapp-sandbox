@@ -10,6 +10,48 @@ export const COLLAPSED_PROPS = { inert: "" } as object;
 
 const FOCUSABLE_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
+// vaul checks data-vaul-no-drag before anything else when deciding whether a touch should resize
+// the sheet or scroll content. Toggling it to match live scroll position means a drag starting on
+// this element can only resize the sheet once it's scrolled all the way back to the top — a drag
+// starting on the header/handle instead (which never carries this attribute) stays resizable
+// regardless of scroll position.
+//
+// That alone isn't enough, though: at the top, pulling down further would normally trigger this
+// element's own native elastic/rubber-band bounce before vaul ever gets a say — iOS Safari
+// doesn't reliably respect overscroll-behavior for that case either (the same gap behind the
+// pull-to-refresh fix elsewhere). Explicitly preventing that specific touchmove hands the gesture
+// straight to vaul instead of fighting its own bounce first.
+export function useNoDragUnlessAtTop<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onScroll = () => el.toggleAttribute("data-vaul-no-drag", el.scrollTop > 0);
+    onScroll();
+    el.addEventListener("scroll", onScroll);
+
+    let lastY = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      lastY = e.touches[0]?.clientY ?? 0;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY ?? 0;
+      const movingDown = y > lastY;
+      lastY = y;
+      if (el.scrollTop <= 0 && movingDown) e.preventDefault();
+    };
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+    };
+  }, []);
+  return ref;
+}
+
 // Marks the top edge of a scroll area once content has slid under the header above it. Scroll
 // events don't bubble, so this catches them on the way down; the height check skips sideways
 // scrollers inside, like the distance chips.
@@ -58,6 +100,7 @@ export function SheetChrome({
   children: React.ReactNode;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const scrollerRef = useNoDragUnlessAtTop<HTMLDivElement>();
 
   // Whatever had focus before this page opened (almost always the search input, since cmdk
   // keeps real focus there even while arrow keys "select" a row) gets it back once this page
@@ -100,8 +143,11 @@ export function SheetChrome({
 
   const scroller = (
     <div
+      ref={scrollerRef}
       {...(scrollable ? {} : COLLAPSED_PROPS)}
       className={cn(
+        // overscroll-contain stops a drag that bottoms out here from chaining into the
+        // browser's own pull-to-refresh, instead of just relying on the html/body fallback
         "min-h-0 flex-1 overscroll-contain",
         scrollable ? "overflow-y-auto" : "overflow-hidden",
       )}

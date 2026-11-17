@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { generateSubwayLines } from "@/utils/generateSubwayLines";
 import { LocationPin, AccessibleWhite } from "@/components/icons";
 import { AlertStatus } from "@/components/icons/variants/AlertStatus";
-import { ScrollEdge, COLLAPSED_PROPS } from "@/components/sheets/SheetChrome";
+import { ScrollEdge, COLLAPSED_PROPS, useNoDragUnlessAtTop } from "@/components/sheets/SheetChrome";
 import { getComplexesDataset } from "@/lib/dataStore";
 import {
   getElevatorsByComplexId,
@@ -275,6 +275,8 @@ export function HomePage({
 }: HomePageProps) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchResultsRef = useNoDragUnlessAtTop<HTMLDivElement>();
+  const stationsListRef = useNoDragUnlessAtTop<HTMLDivElement>();
 
   // --- Nearby stations (merged from the former standalone useNearbyStations hook — it had
   // only this one caller, so splitting it out didn't earn its keep as a separate file) ---
@@ -534,8 +536,11 @@ export function HomePage({
         {isSearching && (
         <ScrollEdge>
         <CommandList
+          ref={searchResultsRef}
           {...(isScrollable ? {} : COLLAPSED_PROPS)}
           className={cn(
+            // overscroll-contain stops a drag that bottoms out here from chaining into the
+            // browser's own pull-to-refresh, instead of just relying on the html/body fallback
             "max-h-none flex-1 overscroll-contain",
             isScrollable ? "overflow-y-auto" : "overflow-hidden",
           )}
@@ -585,8 +590,11 @@ export function HomePage({
       {!isSearching && (
         <ScrollEdge>
         <div
+          ref={stationsListRef}
           {...(isScrollable ? {} : COLLAPSED_PROPS)}
           className={cn(
+            // overscroll-contain stops a drag that bottoms out here from chaining into the
+            // browser's own pull-to-refresh, instead of just relying on the html/body fallback
             "max-h-none flex-1 overscroll-contain",
             isScrollable ? "overflow-y-auto" : "overflow-hidden",
           )}
@@ -739,7 +747,17 @@ export function HomePage({
           )}
 
           <Group title="Get in touch">
-            {COMMUNITY_LINKS.map((link) => (
+            {/* Buy Me A Coffee keeps its logo button, same as the Legend's "About" section; everything else is a plain row */}
+            <a
+              href="https://www.buymeacoffee.com/transitaccess"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Buy Me A Coffee — support Transit Access (opens in new tab)"
+              className={cn("focus-ring-inset relative flex min-h-12 items-center px-4 py-3", ROW_PRESS)}
+            >
+              <img alt="" src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" className="h-10 w-auto" />
+            </a>
+            {COMMUNITY_LINKS.filter((link) => !link.href.includes("buymeacoffee")).map((link) => (
               <a
                 key={link.href}
                 href={link.href}

@@ -44,6 +44,7 @@ interface HomeSheetProps {
   userLocation: LngLat | null;
   overrideLocation: LngLat | null;
   locateSignal: number;
+  showOnMapSignal: number;
   // Bumped each time the map's "zoom out" (birdseye) button is tapped
   zoomOutSignal: number;
   // True during a direct gesture on the map: pan, zoom, rotate or tilt
@@ -79,6 +80,7 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
   overrideLocation,
   locateSignal,
   zoomOutSignal,
+  showOnMapSignal,
   isMapManipulated,
   elevatorData,
   upcomingElevatorData,
@@ -140,15 +142,42 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
     return () => clearTimeout(timer);
   }, [isMapManipulated, isDesktop]);
 
-  // Map controls (geolocate/zoom-out/compass) and the Mapbox logo/attribution row both lift
-  // to stay above the sheet as it rises to its half-height snap point. At full height, they
-  // stop following and the sheet (which sits above them in z-index) covers them instead of
-  // pushing them off the top of the screen.
+  // Map controls (geolocate/zoom-out/compass) and the Mapbox logo/attribution row both lift to
+  // stay above the sheet as it rises to its half-height snap point — continuously, including
+  // mid-drag, not just once the sheet settles. At full height (or past half, mid-drag) they stop
+  // following and the sheet (which sits above them in z-index) covers them instead of pushing
+  // them off the top of the screen.
+  //
+  // vaul moves the sheet during a drag with direct DOM writes (no React re-render until it
+  // settles), so a snap-state effect alone only catches up after the gesture ends. A
+  // MutationObserver on the drawer's style looked like the fix, but firing a synchronous style
+  // write on every single mutation vaul makes (i.e. every drag frame) was heavy enough to stall
+  // vaul's own frame work — polling once per animation frame instead stays in the same timing
+  // budget as everything else, and only writes the CSS vars when the rounded value actually
+  // changes. On desktop there's no drawer element (a plain fixed panel instead), so this falls
+  // back to the old snap-based value there, same as before.
   useEffect(() => {
-    const height =
-      snap === SNAP_FULL ? `${SNAP_HALF * 100}dvh` : typeof snap === "number" ? `${snap * 100}dvh` : snap ?? SNAP_PEEK;
-    document.documentElement.style.setProperty("--bottom-popup-h", height);
-    document.documentElement.style.setProperty("--sheet-h", height);
+    const drawer = document.querySelector("[data-vaul-drawer]") as HTMLElement | null;
+    const capPx = window.innerHeight * SNAP_HALF;
+    let lastHeight = "";
+    let rafId: number;
+
+    const tick = () => {
+      const heightPx = drawer
+        ? Math.max(0, window.innerHeight - drawer.getBoundingClientRect().top)
+        : typeof snap === "number"
+          ? snap * window.innerHeight
+          : parseFloat(snap ?? SNAP_PEEK);
+      const height = `${Math.round(Math.min(heightPx, capPx))}px`;
+      if (height !== lastHeight) {
+        lastHeight = height;
+        document.documentElement.style.setProperty("--bottom-popup-h", height);
+        document.documentElement.style.setProperty("--sheet-h", height);
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
   }, [snap]);
 
   const openLegend = () => {
@@ -176,6 +205,14 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
     setSnap(SNAP_PEEK);
   }, [zoomOutSignal]);
 
+  // Tapping "See on map" in an elevator's detail page steps the sheet back to half height so the
+  // map is visible underneath, without closing the detail page itself
+  useEffect(() => {
+    if (showOnMapSignal === 0) return;
+    snapBeforeGesture.current = null;
+    setSnap(SNAP_HALF);
+  }, [showOnMapSignal]);
+
   // Desktop is a static panel (no drag/snap), so it's always fully scrollable with
   // ordinary bottom padding. Mobile keeps the snap-point peek/half/full behavior.
   const isScrollable = isDesktop || snap !== SNAP_PEEK;
@@ -189,8 +226,10 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
 
   const content = (
     <>
+      {/* vaul's own Handle, not a plain div: its actual touch target expands to 44px regardless
+          of this visible bar's size, and tapping it cycles through snap points for free. */}
       {!isDesktop && (
-        <div className="mx-auto mt-2 h-[5px] w-9 shrink-0 rounded-full bg-handle" aria-hidden="true" />
+        <DrawerPrimitive.Handle className="mx-auto mt-2 h-[5px] w-9 shrink-0 rounded-full bg-handle" />
       )}
 
       {page ? (
@@ -247,27 +286,40 @@ const HomeSheet: React.FC<HomeSheetProps> = ({
   }
 
   return (
-    <Drawer
-      open={open}
-      modal={false}
-      dismissible={false}
-      shouldScaleBackground={false}
-      snapPoints={[SNAP_PEEK, SNAP_HALF, SNAP_FULL]}
-      activeSnapPoint={snap}
-      setActiveSnapPoint={setSnap}
-    >
-      <DrawerPortal>
-        <DrawerPrimitive.Content
-          id={STATIONS_PANEL_ID}
-          tabIndex={-1}
-          aria-describedby={undefined}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          className="fixed inset-x-0 bottom-0 z-[998] mx-auto flex h-dvh max-w-lg flex-col rounded-t-sheet bg-background shadow-sheet outline-none"
-        >
-          {content}
-        </DrawerPrimitive.Content>
-      </DrawerPortal>
-    </Drawer>
+    <>
+      <Drawer
+        open={open}
+        modal={false}
+        dismissible={false}
+        shouldScaleBackground={false}
+        snapPoints={[SNAP_PEEK, SNAP_HALF, SNAP_FULL]}
+        activeSnapPoint={snap}
+        setActiveSnapPoint={setSnap}
+        // We never use vaul's fade/scale-background visuals (modal=false, shouldScaleBackground=
+        // false), but its default fadeFromIndex (snapPoints.length - 1) still has a side effect:
+        // dragging down from the snap point just below it makes vaul's internal drag-percentage
+        // calculation freeze at 1 from the first pixel of movement, which stops the sheet from
+        // tracking the drag at all until release. Pointing it past the end of the array keeps
+        // that calculation out of the way for every real snap point.
+        fadeFromIndex={4}
+        // Once a touch is read as "scrolling the list," stay committed to that for a beat so a
+        // continued fast swipe doesn't flip into resizing the sheet mid-gesture (vaul's default,
+        // 100ms, is too quick to reliably survive a fast swipe).
+        scrollLockTimeout={500}
+      >
+        <DrawerPortal>
+          <DrawerPrimitive.Content
+            id={STATIONS_PANEL_ID}
+            tabIndex={-1}
+            aria-describedby={undefined}
+            onOpenAutoFocus={(e) => e.preventDefault()}
+            className="fixed inset-x-0 bottom-0 z-[998] mx-auto flex h-dvh max-w-lg flex-col rounded-t-sheet bg-background shadow-sheet outline-none"
+          >
+            {content}
+          </DrawerPrimitive.Content>
+        </DrawerPortal>
+      </Drawer>
+    </>
   );
 };
 

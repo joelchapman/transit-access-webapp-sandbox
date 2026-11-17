@@ -48,6 +48,12 @@ div#__next > div {
   max-width: 100%;
   overflow-x: hidden;
   position: relative;
+  /* overscroll-behavior alone doesn't reliably stop Safari's page-level rubber-band/
+     pull-to-refresh (its support for that case is a known gap, unlike Chrome) — body itself is
+     never meant to scroll here, every real scroll happens in a nested container, so making it
+     non-scrollable outright removes the page-level bounce surface Safari would otherwise offer. */
+  overflow-y: hidden;
+  overscroll-behavior-y: contain;
 }
 
 #root {
@@ -268,7 +274,10 @@ div#__next > div {
   bottom: calc(var(--map-ctrl-bottom) + var(--map-ctrl-step) * var(--map-ctrl-slot));
   margin: 0 !important;
   transform: translateY(calc(-1 * var(--map-ctrl-lift)));
-  transition: transform 0.3s ease;
+  /* No transition: HomeSheet's rAF loop already samples the sheet's live position every frame
+     and writes a fresh value here each time, so a CSS transition would just keep restarting
+     toward a slightly-stale target every frame — a compounding lag, not a smoother move. */
+  transition: none;
   z-index: var(--z-index-map-controls);
 }
 .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group:has(.mapboxgl-ctrl-geolocate) { --map-ctrl-slot: 0; }
@@ -415,7 +424,10 @@ div#__next > div {
   flex-direction: row;
   align-items: center;
   transform: translateY(calc(-1 * var(--sheet-h, var(--sheet-peek))));
-  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+  /* No transition: HomeSheet's rAF loop already samples the sheet's live position every frame
+     and writes a fresh value here each time, so a CSS transition would just keep restarting
+     toward a slightly-stale target every frame — a compounding lag, not a smoother move. */
+  transition: none;
   z-index: var(--z-index-map-controls);
 }
 

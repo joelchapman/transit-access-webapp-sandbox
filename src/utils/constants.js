@@ -50,7 +50,7 @@ export const COMMUNITY_LINKS = [
   { label: "Send feedback", href: "https://app.youform.com/forms/dnefmhvd" },
   { label: "Email the team", href: "mailto:team@transitaccess.org" },
   { label: "Join our Discord", href: "https://discord.gg/HgZVSJ9SE8" },
-  { label: "Buy us a coffee", href: "https://www.buymeacoffee.com/transitaccess" },
+  { label: "Buy me a coffee", href: "https://www.buymeacoffee.com/transitaccess" },
   { label: "Instagram", href: "https://www.instagram.com/transitaccess/" },
   { label: "TikTok", href: "https://www.tiktok.com/@transitaccess" },
   { label: "Bluesky", href: "https://bsky.app/profile/transitaccess.bsky.social" },

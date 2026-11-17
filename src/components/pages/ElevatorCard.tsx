@@ -254,7 +254,10 @@ const ElevatorCard: React.FC<{
                 <button
                   ref={flyButtonRef}
                   type="button"
-                  onClick={() => setActiveFlyButton(isActive ? null : elevator.elevatorno)}
+                  onClick={() => {
+                    if (!isActive) map.fire("elevator-see-on-map");
+                    setActiveFlyButton(isActive ? null : elevator.elevatorno);
+                  }}
                   // Touch browsers fire synthetic mouseenter/mouseleave around a tap, which would
                   // otherwise immediately undo the click toggle above — hover-capable pointers only
                   onMouseEnter={() => {

@@ -120,6 +120,9 @@ const MtaMap = () => {
   // Bumped each time the zoom-out ("birdseye") button is tapped, so HomeSheet can
   // collapse to its minimum size — distinct from organically scrolling/pinching out
   const [zoomOutSignal, setZoomOutSignal] = useState(0);
+  // Bumped when ElevatorCard's "See on map" button fires its custom map event, so HomeSheet can
+  // step back to half height and reveal the map underneath without closing the detail page
+  const [showOnMapSignal, setShowOnMapSignal] = useState(0);
   const [mapCenterLocation, setMapCenterLocation] = useState<
     [number, number] | null
   >(null);
@@ -534,6 +537,13 @@ const MtaMap = () => {
         setZoomLevel(zoom);
       });
 
+      // ElevatorCard's "See on map" button fires this on the map instance it already has, rather
+      // than needing a prop/callback threaded all the way from its own detached React root back
+      // up to HomeSheet.
+      mapRef.current.on("elevator-see-on-map", () =>
+        setShowOnMapSignal((n) => n + 1),
+      );
+
       mapRef.current.on("click", () =>
         removeHoverPopup(onHoverPopupRef.current),
       );
@@ -881,6 +891,7 @@ const MtaMap = () => {
         overrideLocation={mapCenterLocation}
         locateSignal={locateSignal}
         zoomOutSignal={zoomOutSignal}
+        showOnMapSignal={showOnMapSignal}
         isMapManipulated={isMapManipulated}
         elevatorData={elevatorDataState}
         upcomingElevatorData={upcomingRawData}
